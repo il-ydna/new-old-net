@@ -1,0 +1,10 @@
+/* auth/auth.css */
+input,
+button {
+  font-family: "Times New Roman";
+  font-size: 1rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}

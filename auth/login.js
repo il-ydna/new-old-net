@@ -28,7 +28,7 @@ document.getElementById("loginBtn").addEventListener("click", () => {
       const idToken = result.getIdToken().getJwtToken();
       localStorage.setItem("idToken", idToken);
       // redirect to your app home page or dashboard
-      window.location.href = "posts.html";
+      window.location.href = "/";
     },
     onFailure: (err) => {
       alert(err.message || JSON.stringify(err));

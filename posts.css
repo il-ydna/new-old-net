@@ -17,11 +17,14 @@ body {
 }
 
 header {
-  padding: 0 1rem;
-  padding: 0;
+  display: flex;
+  justify-content: space-between; /* <-- distributes layout selector and user controls */
+  align-items: center;
   margin: 2rem auto;
-  font-size: 1rem;
+  padding: 0 1rem;
+  max-width: 600px; /* or whatever your layout width is */
 }
+
 #user-controls {
   display: flex;
   align-items: center; /* vertically center */
@@ -501,4 +504,40 @@ form.editing {
   100% {
     box-shadow: 0 0 0 0 rgba(244, 162, 97, 0);
   }
+}
+
+/* style of each post in timeline layout */
+#posts.layout-timeline article.post {
+  margin-bottom: 1.5rem;
+}
+
+/* style of the columns*/
+#posts.layout-columns {
+  column-count: 2;
+  column-gap: 1rem;
+}
+/* style of each post in column layout */
+#posts.layout-columns article.post {
+  break-inside: avoid;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+#posts.layout-columns ~ * {
+  max-width: 100%;
+}
+
+body:has(#posts.layout-columns) {
+  max-width: 100%;
+  padding: 1rem 3rem;
+  margin: 0 auto;
+}
+
+form {
+  max-width: 600px;
+  margin: auto;
+  margin-bottom: 2rem;
+}
+#posts.layout-columns article.post:first-child {
+  margin-top: 0;
 }
