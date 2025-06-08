@@ -1,0 +1,504 @@
+body {
+  background: url("assets/bgcloud.jpg") no-repeat center center fixed;
+  background-size: cover;
+
+  max-width: 600px;
+  margin: auto;
+  font-family: "Times New Roman";
+  padding: 1rem;
+  color: white;
+}
+
+html,
+body {
+  height: 100%;
+  background: url("assets/bgcloud.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+header {
+  padding: 0 1rem;
+  padding: 0;
+  margin: 2rem auto;
+  font-size: 1rem;
+}
+#user-controls {
+  display: flex;
+  align-items: center; /* vertically center */
+  gap: 1rem; /* space between username and button */
+  justify-content: flex-end;
+}
+/* for the logout button */
+header button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  padding: 0;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 4vw;
+  display: flex;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-family: "Times New Roman";
+  border-radius: 4px;
+  justify-content: center;
+  border-width: 2px;
+  border-style: outset;
+  border-color: buttonborder;
+  text-align: center;
+}
+
+/* Optional: semi-transparent background for readability */
+form,
+#posts {
+  background: rgba(0, 0, 0, 0.6); /* dark translucent background */
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+input:not([type="file"]),
+textarea {
+  all: unset;
+  background-color: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-family: "Times New Roman";
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word; /* for older browsers */
+  overflow-wrap: break-word;
+}
+
+button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: white;
+  font-family: "Times New Roman";
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.post {
+  position: relative; /* allow absolute positioning inside */
+  padding: 1rem;
+  margin-block: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.post.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tag-pill {
+  position: absolute;
+  top: 1.5rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--pill-color, #ccc);
+  color: #ece3e4;
+  font-size: 0.65rem;
+  border-radius: 999px;
+  padding: 0;
+  width: 10px;
+  height: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.3s ease, padding 0.3s ease;
+  text-align: center;
+}
+
+.tag-pill:hover {
+  width: auto;
+  padding: 0 0.6rem;
+}
+
+.pill-label {
+  opacity: 0;
+  transition: none;
+  user-select: none;
+}
+
+.tag-pill:hover .pill-label {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+.post.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.post h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.post small {
+  color: #ccc;
+}
+
+.post button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+img {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.button-row > *:nth-child(2) {
+  justify-self: center;
+}
+
+button:hover {
+  background-color: #ffffff40;
+  transform: translateY(-1px);
+}
+
+.img-uploader {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: white;
+  font-family: "Times New Roman";
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+
+  border-width: 2px;
+  border-style: outset;
+  border-color: buttonborder;
+}
+
+.img-uploader:hover {
+  background-color: #ffffff40;
+  transform: translateY(-1px);
+}
+.button-style {
+  appearance: none;
+  display: flex;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: white;
+  font-size: 1rem;
+  font-family: "Times New Roman";
+  border-radius: 4px;
+  justify-content: center;
+  border-width: 2px;
+  border-style: outset;
+  border-color: buttonborder;
+  text-align: center;
+}
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  font-family: "Times New Roman";
+  width: 8rem;
+}
+
+/* This inherits button-style look */
+.selected-option.button-style {
+  appearance: none;
+  display: flex;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: white;
+  font-size: 1rem;
+  font-family: "Times New Roman";
+  border-radius: 4px;
+  justify-content: center;
+  border-width: 2px;
+  border-style: outset;
+  border-color: buttonborder;
+  text-align: center;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-options {
+  display: none;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 2px outset buttonborder;
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 0.25rem;
+  z-index: 1000;
+}
+
+.dropdown-option {
+  padding: 0.5rem 1rem;
+  font-family: "Times New Roman";
+  font-size: 1rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.dropdown-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ---- Mobile tweaks: make posts use full width ---- */
+@media (max-width: 768px) {
+  /* Let the whole page flow edge-to-edge */
+  body {
+    max-width: 100%;
+    margin: 0; /* optional: flush sides */
+    padding: 0.75rem; /* a little breathing room */
+  }
+
+  /* Form and posts containers stretch full width */
+  form,
+  #posts {
+    margin: 0; /* remove side gaps */
+    padding: 0.75rem;
+  }
+
+  /* Each individual post fills the width */
+  .post {
+    width: 100%;
+    margin-inline: 0; /* no left/right margin */
+    box-sizing: border-box;
+  }
+}
+
+.image-preview-container {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.layout-dropdown {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 2px outset buttonborder;
+  border-radius: 4px;
+  font-family: "Times New Roman";
+  min-width: 7rem;
+}
+
+.image-preview-container:hover .layout-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.layout-dropdown {
+  position: absolute;
+  top: 0.5rem;
+  right: 0rem;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 2px outset buttonborder;
+  border-radius: 4px;
+  font-family: "Times New Roman";
+  min-width: 4rem;
+  text-align: center;
+}
+
+.layout-dropdown .selected-option {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: white;
+  user-select: none;
+}
+
+.layout-dropdown .dropdown-options {
+  display: none;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.layout-dropdown .dropdown-option {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: white;
+}
+
+.layout-dropdown .dropdown-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.preview-image {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0px;
+}
+
+.grid-image {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+.stack-layout img {
+  display: block;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+}
+
+.stack-image {
+  display: block;
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  border-radius: 0; /* or customize this independently */
+}
+
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.carousel-images {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+
+.carousel-img {
+  border-radius: 0px;
+  display: none;
+  width: 100%;
+}
+
+.carousel-img.active {
+  display: block;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(30, 30, 30, 0.6);
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  padding: 0.3rem 0.6em;
+  cursor: pointer;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.carousel-container:hover .carousel-nav {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 0.5rem;
+  height: 0.5rem;
+
+  background-color: rgba(0, 0, 0, 0.2);
+  color: white;
+  font-family: "Times New Roman";
+  font-size: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.carousel-nav:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.carousel-container:hover .carousel-nav {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.carousel-nav.prev {
+  left: 0.5rem;
+}
+.carousel-nav.next {
+  right: 0.5rem;
+}
+
+form.editing {
+  border: 5px #f4a261;
+  animation: pulse-border 1s infinite;
+  transition: background-color 0.3s ease;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 162, 97, 0.8);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(244, 162, 97, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 162, 97, 0);
+  }
+}

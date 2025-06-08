@@ -1,0 +1,17 @@
+# Python virtual environments
+venv/
+__pycache__/
+*.pyc
+
+# Node/NPM
+node_modules/
+
+# Editor/OS clutter
+.DS_Store
+.vscode/
+*.log
+
+# Built/compiled
+dist/
+build/
+.env
