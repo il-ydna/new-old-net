@@ -105,6 +105,9 @@ postForm.addEventListener("submit", async (e) => {
     imageUrls.push(url);
   }
 
+  const currentUserId = await getUserIdFromToken();
+  const currentUsername = await getUsernameFromToken();
+
   const newPost = {
     id: editingPostId || postId,
     title: formData.get("title"),
@@ -114,12 +117,17 @@ postForm.addEventListener("submit", async (e) => {
     layout: formData.get("layout") || "grid",
     timestamp: Date.now(),
     username: await getUsernameFromToken(),
+    userId: currentUserId,
     pageOwnerId: OWNER_ID,
   };
 
-  const currentUserId = await getUserIdFromToken();
   if (currentUserId !== OWNER_ID) {
     newPost.tag = "guest";
+  }
+
+  // Add `id` only if editing (your Lambda generates a new one otherwise)
+  if (editingPostId) {
+    newPost.id = editingPostId;
   }
 
   const idToken = await getIdToken();

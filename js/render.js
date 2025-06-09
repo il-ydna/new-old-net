@@ -21,6 +21,22 @@ export function renderStack(images) {
   `;
 }
 
+window.changeSlide = function (id, direction) {
+  const container = document.getElementById(id);
+  if (!container) return;
+
+  const images = container.querySelectorAll(".carousel-img");
+  const currentIndex = Array.from(images).findIndex((img) =>
+    img.classList.contains("active")
+  );
+  if (currentIndex === -1) return;
+
+  images[currentIndex].classList.remove("active");
+
+  const nextIndex = (currentIndex + direction + images.length) % images.length;
+  images[nextIndex].classList.add("active");
+};
+
 export function renderCarousel(images) {
   if (!images.length) return "";
   const id = "carousel-" + Math.random().toString(36).slice(2, 9);

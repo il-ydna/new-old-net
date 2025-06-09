@@ -153,7 +153,9 @@ def handle_post(event):
     try:
         claims = get_user_claims(event)
         user_sub   = claims.get("sub")
-        user_email = claims.get("email")
+        user_name = claims.get("cognito:username")
+
+        print("username from token:", claims.get("cognito:username"))
 
         body = json.loads(event.get("body", "{}"))
         for field in ["title", "content", "timestamp"]:
@@ -164,14 +166,14 @@ def handle_post(event):
         post_item = {
             "id": post_id,
             "userId": user_sub,
-            "userEmail": user_email,
+            "username": user_name,
             "title": body.get("title"),
             "content": body.get("content"),
             "tag": body.get("tag", "general"),
             "timestamp": body.get("timestamp"),
             "images": body.get("images", []), 
             "layout": body.get("layout", "grid"),
-            "pageOwnerId": user_sub  # Optional but future-proof
+            "pageOwnerId": body.get("pageOwnerId", user_sub)
         }
 
         table.put_item(Item=post_item)
@@ -185,6 +187,7 @@ def handle_post(event):
 
 
 def handle_delete(event):
+    print('deleting')
     try:
         claims = get_user_claims(event)
         user_sub = claims.get("sub")
@@ -203,6 +206,7 @@ def handle_delete(event):
         post_owner = item.get("userId")
         page_owner = item.get("pageOwnerId")
 
+        print(f"user: {user_sub}, post owner: {post_owner}, page owner: {page_owner}")
         if user_sub != post_owner and user_sub != page_owner:
             return cors_response(403, {"error": "Not authorized to delete this post"})
 
@@ -287,7 +291,7 @@ def handle_put(event):
         updated_data = {k: v for k, v in body.items() if k in allowed_fields}
         updated_data["id"] = post_id
         updated_data["userId"] = user_sub
-        updated_data["userEmail"] = claims.get("email")
+        updated_data["user_name"] = claims.get("username")
 
         table.put_item(Item=updated_data)
 
