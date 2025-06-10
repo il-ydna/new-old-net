@@ -1,5 +1,6 @@
 import { getIdToken } from "./auth.js";
 import { loadPosts } from "./posts.js";
+import { setEditingPostId, getCurrentUser } from "./state.js";
 
 export function renderGrid(images) {
   return `
@@ -59,7 +60,7 @@ export function renderCarousel(images) {
   `;
 }
 
-export function renderPosts(posts, currentUserId = null) {
+export function renderPosts(posts) {
   const postsSection = document.getElementById("posts");
   postsSection.innerHTML = posts
     .slice()
@@ -69,9 +70,10 @@ export function renderPosts(posts, currentUserId = null) {
       const color = getTagColor(post.tag);
       const username = post.username || "Unknown User";
 
-      const isPostOwner = post.userId && post.userId === currentUserId;
+      const currentUser = getCurrentUser();
+      const isPostOwner = post.userId && post.userId === currentUser?.id;
       const isSiteOwner =
-        currentUserId === "b19b5500-0021-70d5-4f79-c9966e8d1abd";
+        currentUser?.id === "b19b5500-0021-70d5-4f79-c9966e8d1abd";
 
       const deleteBtn =
         isPostOwner || isSiteOwner
@@ -212,7 +214,7 @@ window.editPost = async function (id) {
     previewContainer.appendChild(img);
   });
 
-  editingPostId = id;
+  setEditingPostId(id);
   form.classList.add("editing");
   document.getElementById("cancelEditBtn").style.display = "inline-block";
   document.getElementById("submitPostBtn").textContent = "Edit Post";

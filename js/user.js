@@ -1,7 +1,7 @@
 import { renderPosts } from "./render.js";
 import { setupPostLayoutDropdown } from "./ui.js";
-import { getUserIdFromToken } from "./auth.js";
 import { updateHeader } from "./posts.js";
+import { getCurrentUser } from "./state.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await updateHeader(); // ✅ Add this line
@@ -16,7 +16,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const currentUserId = await getUserIdFromToken();
+  const currentUserId = getCurrentUser()?.id;
 
   if (currentUserId === pageOwnerId) {
     // Show form and dropdown

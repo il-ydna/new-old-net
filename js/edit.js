@@ -1,4 +1,4 @@
-import { getIdToken, getUserIdFromToken } from "./auth.js";
+import { getCurrentUser } from "./state.js";
 import { updateHeader } from "./posts.js";
 
 const form = document.getElementById("settingsForm");
@@ -22,8 +22,7 @@ let currentBackgroundURL = "";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await updateHeader();
-  idToken = await getIdToken();
-  userId = await getUserIdFromToken();
+  userId = getCurrentUser()?.id;
 
   if (!idToken || !userId) {
     alert("Please log in to access your page settings.");

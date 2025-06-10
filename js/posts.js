@@ -8,7 +8,12 @@ import { uploadImageToS3 } from "./upload.js";
 import { renderPosts } from "./render.js";
 
 export const OWNER_ID = "b19b5500-0021-70d5-4f79-c9966e8d1abd";
-export let editingPostId = null;
+import {
+  getEditingPostId,
+  setEditingPostId,
+  setCurrentUser,
+  getCurrentUser,
+} from "./state.js";
 
 const postForm = document.getElementById("postForm");
 const imageInput = document.getElementById("imageInput");
@@ -37,6 +42,7 @@ export async function updateHeader() {
 
   const username = await getUsernameFromToken();
   const userId = await getUserIdFromToken();
+  setCurrentUser({ id: userId, username });
 
   userControls.innerHTML = `
     <div id="username">Signed in as ${username}</div>
@@ -65,11 +71,8 @@ export async function updateHeader() {
 
 export async function loadPosts() {
   const idToken = await getIdToken();
-  let userid = null;
-
-  if (idToken) {
-    userid = await getUserIdFromToken();
-  } else {
+  const currentUser = getCurrentUser();
+  if (!idToken || !currentUser) {
     postForm.style.display = "none";
   }
 
@@ -80,7 +83,7 @@ export async function loadPosts() {
     })
     .then((posts) => {
       posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      renderPosts(posts, userid);
+      renderPosts(posts);
     })
     .catch(() => {
       postsSection.innerHTML =
@@ -95,6 +98,8 @@ export function initPostForm() {
     e.preventDefault();
     removeValidationMessage();
 
+    const editingId = getEditingPostId();
+
     const titleInput = postForm.querySelector('input[name="title"]');
     const formData = new FormData(postForm);
     const files = imageInput.files;
@@ -104,7 +109,7 @@ export function initPostForm() {
       return;
     }
 
-    const postId = editingPostId || crypto.randomUUID();
+    const postId = editingId || crypto.randomUUID();
     const imageUrls = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -112,18 +117,18 @@ export function initPostForm() {
       imageUrls.push(url);
     }
 
-    const currentUserId = await getUserIdFromToken();
-    const currentUsername = await getUsernameFromToken();
+    const { id: currentUserId, username: currentUsername } =
+      getCurrentUser() || {};
 
     const newPost = {
-      id: editingPostId || postId,
+      id: editingId || postId,
       title: formData.get("title"),
       content: formData.get("content"),
       images: imageUrls,
       tag: formData.get("tag") || "general",
       layout: formData.get("layout") || "grid",
       timestamp: Date.now(),
-      username: await getUsernameFromToken(),
+      username: currentUsername,
       userId: currentUserId,
       pageOwnerId: OWNER_ID,
     };
@@ -132,18 +137,13 @@ export function initPostForm() {
       newPost.tag = "guest";
     }
 
-    // Add `id` only if editing (your Lambda generates a new one otherwise)
-    if (editingPostId) {
-      newPost.id = editingPostId;
-    }
-
     const idToken = await getIdToken();
     if (!idToken) {
       showValidationMessage("Please log in to submit posts.");
       return;
     }
 
-    const method = editingPostId ? "PUT" : "POST";
+    const method = editingId ? "PUT" : "POST";
     const endpoint = "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/";
 
     try {
@@ -162,7 +162,7 @@ export function initPostForm() {
         return;
       }
 
-      editingPostId = null;
+      setEditingPostId(null);
       postForm.reset();
       previewContainer.innerHTML = "";
       layoutInput.value = "grid";
