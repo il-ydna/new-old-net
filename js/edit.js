@@ -202,7 +202,7 @@ form.addEventListener("submit", async (e) => {
   if (res.ok) {
     saveStatus.textContent = "✅ Settings saved!";
     injectCSS(payload.custom_css);
-    preview.style.backgroundImage = "none";
+    preview.style.backgroundImage = currentBackgroundURL;
     preview.classList.remove("has-image");
     wrapper.style.display = "block";
     fill.style.width = "0%";

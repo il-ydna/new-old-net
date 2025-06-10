@@ -283,6 +283,7 @@ def handle_user_meta_put(event):
         # If a staged background was used, copy to final key
         bg_url = update.get("background_url", "")
         if bg_url and "_staged_" in bg_url:
+            print('changing from staged to final now')
             staged_key = f"posts/bg_{user_id}_staged_0.jpg"
             final_key = f"posts/bg_{user_id}_final.jpg"
 
@@ -295,6 +296,7 @@ def handle_user_meta_put(event):
             )
 
             final_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
+            print(final_url)
             update["background_url"] = final_url
 
         users_table.put_item(Item=update)
