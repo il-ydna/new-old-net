@@ -2,112 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Andy's Updates</title>
-    <link rel="stylesheet" href="posts.css" />
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js"
-    ></script>
-    <script type="module" src="js/main.js"></script>
+    <title>New Old Net</title>
+
+    <!-- ✅ Load Cognito SDK first -->
+    <script src="https://unpkg.com/amazon-cognito-identity-js@6.3.3/dist/amazon-cognito-identity.min.js"></script>
+
+    <!-- ✅ Then load your app -->
+    <script type="module" src="./js/router.js"></script>
+
+    <link rel="stylesheet" href="./posts.css" />
   </head>
   <body>
-    <header>
-      <div class="custom-dropdown" id="post-layout-selector">
-        <div class="selected-option">Timeline</div>
-        <div class="dropdown-options">
-          <div class="dropdown-option" data-value="columns">Columns</div>
-          <div class="dropdown-option" data-value="stack">Timeline</div>
-        </div>
-      </div>
-      <div id="user-controls"></div>
-    </header>
-
-    <form id="postForm">
-      <input type="text" name="title" placeholder="Post Title" />
-      <textarea
-        name="content"
-        placeholder="Write something..."
-        rows="5"
-      ></textarea>
-
-      <div class="button-row">
-        <div id="image-drop-zone" class="img-uploader" tabindex="0">
-          <label for="imageInput">Choose/Drop Image</label>
-          <input
-            type="file"
-            id="imageInput"
-            name="image"
-            accept="image/*"
-            multiple
-            hidden
-          />
-        </div>
-        <div id="tag-dropdown-wrapper">
-          <div class="custom-dropdown" id="tagDropdown">
-            <div class="selected-option button-style">Select a tag</div>
-            <div class="dropdown-options">
-              <div
-                class="dropdown-option"
-                data-value="general"
-                data-color="#dcd2ca"
-              >
-                <span class="dot" style="background: #97938e"></span> General
-              </div>
-              <div
-                class="dropdown-option"
-                data-value="project"
-                data-color="#7f8181"
-              >
-                <span class="dot" style="background: #6a747c"></span> Project
-              </div>
-              <div
-                class="dropdown-option"
-                data-value="photo"
-                data-color="#5e6870"
-              >
-                <span class="dot" style="background: #5e6870"></span> Photo
-              </div>
-              <div
-                class="dropdown-option"
-                data-value="book"
-                data-color="#506c7f"
-              >
-                <span class="dot" style="background: #3d5161"></span> Reading
-              </div>
-              <div
-                class="dropdown-option"
-                data-value="guest"
-                data-color="#293e51"
-              >
-                <span class="dot" style="background: #293e51"></span> Guest
-              </div>
-            </div>
-            <input type="hidden" name="tag" id="tagInput" required />
-          </div>
-        </div>
-
-        <button type="submit" id="submitPostBtn">Add Post</button>
-      </div>
-
-      <div id="image-preview-container" class="image-preview-container">
-        <div id="layout-selector" class="layout-dropdown" style="display: none">
-          <div class="selected-option">Grid</div>
-          <div class="dropdown-options">
-            <div class="dropdown-option" data-value="grid">Grid</div>
-            <div class="dropdown-option" data-value="carousel">Carousel</div>
-            <div class="dropdown-option" data-value="stack">Stack</div>
-          </div>
-          <input type="hidden" name="layout" id="layoutInput" value="grid" />
-        </div>
-      </div>
-
-      <button type="button" id="cancelEditBtn" style="display: none">
-        Cancel Edit
-      </button>
-    </form>
-
-    <div id="posts-wrapper">
-      <section id="posts" class="layout-columns"></section>
-    </div>
+    <div id="app"></div>
   </body>
 </html>

@@ -28,6 +28,10 @@ export async function uploadImageToS3(file, postId, index) {
 
 export function setupImageUploader() {
   const dropZone = document.getElementById("image-drop-zone");
+  const imageInput = document.getElementById("imageInput");
+  const imageLabel = document.querySelector("#image-drop-zone label");
+
+  if (!dropZone || !imageInput || !imageLabel) return; // graceful fail
 
   dropZone.addEventListener("click", (e) => {
     if (e.target.tagName !== "LABEL") imageInput.click();
@@ -48,14 +52,14 @@ export function setupImageUploader() {
 
     if (e.dataTransfer.files.length > 0) {
       imageInput.files = e.dataTransfer.files;
-      updateLabel(e.dataTransfer.files[0].name);
+      updateLabel(e.dataTransfer.files[0].name, imageLabel);
       showImagePreview(e.dataTransfer.files);
     }
   });
 
   imageInput.addEventListener("change", () => {
     if (imageInput.files.length > 0) {
-      updateLabel(imageInput.files[0].name);
+      updateLabel(imageInput.files[0].name, imageLabel);
       showImagePreview(imageInput.files);
     } else {
       imageLabel.textContent = "Choose Image";
@@ -67,17 +71,19 @@ export function setupImageUploader() {
   });
 }
 
-function updateLabel(fileName) {
+function updateLabel(fileName, labelEl) {
   const maxLen = 20;
   const truncated =
     fileName.length > maxLen ? fileName.slice(0, maxLen) + "…" : fileName;
-  imageLabel.innerHTML = `<span style="text-decoration: underline;">${truncated}</span>`;
+  labelEl.innerHTML = `<span style="text-decoration: underline;">${truncated}</span>`;
 }
-
+webkitURL;
 function showImagePreview(files) {
-  const existingSelector = document.getElementById("layout-selector");
-  previewContainer.innerHTML = "";
-  if (existingSelector) previewContainer.appendChild(existingSelector);
+  const layoutSelector = document.getElementById("layout-selector");
+  const layoutInput = document.getElementById("layoutInput");
+  const previewContainer = document.getElementById("image-preview-container");
+
+  if (!layoutInput || !previewContainer) return;
 
   const layout = layoutInput.value || "grid";
   const readAll = Array.from(files).map(
@@ -101,9 +107,12 @@ function showImagePreview(files) {
       default:
         html = renderGrid(urls);
     }
-    previewContainer.innerHTML = html;
-    if (existingSelector) previewContainer.appendChild(existingSelector);
-  });
 
-  layoutSelector.style.display = files.length >= 2 ? "block" : "none";
+    previewContainer.innerHTML = html;
+
+    if (layoutSelector) {
+      previewContainer.appendChild(layoutSelector);
+      layoutSelector.style.display = urls.length >= 2 ? "block" : "none";
+    }
+  });
 }

@@ -4,36 +4,46 @@ const poolData = {
 };
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-document.getElementById("loginBtn").addEventListener("click", () => {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+export default function initLoginForm() {
+  const form = document.getElementById("loginForm");
+  if (!form) return;
 
-  if (!email || !password) {
-    alert("Please enter email and password");
-    return;
-  }
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
 
-  const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-    Username: email,
-    Password: password,
+    const username = form.username.value.trim();
+    const password = form.password.value.trim();
+
+    if (!username || !password) {
+      alert("Please enter both username and password");
+      return;
+    }
+
+    const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+      Username: username,
+      Password: password,
+    });
+
+    const userData = {
+      Username: username,
+      Pool: userPool,
+    };
+
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+    cognitoUser.authenticateUser(authDetails, {
+      onSuccess: (result) => {
+        const idToken = result.getIdToken().getJwtToken();
+        localStorage.setItem("idToken", idToken);
+
+        const returnTo =
+          new URLSearchParams(window.location.search).get("returnTo") || "/";
+        history.pushState({}, "", returnTo);
+        window.dispatchEvent(new Event("popstate"));
+      },
+      onFailure: (err) => {
+        alert(err.message || JSON.stringify(err));
+      },
+    });
   });
-
-  const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-    Username: email,
-    Pool: userPool,
-  });
-
-  cognitoUser.authenticateUser(authDetails, {
-    onSuccess: (result) => {
-      const idToken = result.getIdToken().getJwtToken();
-      localStorage.setItem("idToken", idToken);
-      // redirect to your app home page or dashboard
-      const returnTo =
-        new URLSearchParams(window.location.search).get("returnTo") || "/";
-      window.location.href = returnTo;
-    },
-    onFailure: (err) => {
-      alert(err.message || JSON.stringify(err));
-    },
-  });
-});
+}

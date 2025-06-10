@@ -4,37 +4,47 @@ const poolData = {
 };
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-document.getElementById("signUpBtn").addEventListener("click", () => {
-  const username = document.getElementById("username").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+export default function initSignupForm() {
+  const form = document.getElementById("signupForm");
+  if (!form) return;
 
-  if (!username || !email || !password) {
-    alert("Please fill in all fields");
-    return;
-  }
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
 
-  const attributeList = [
-    new AmazonCognitoIdentity.CognitoUserAttribute({
-      Name: "email",
-      Value: email,
-    }),
-  ];
+    const username = form.username.value.trim();
+    const email = form.email.value.trim();
+    const password = form.password.value.trim();
 
-  userPool.signUp(username, password, attributeList, null, (err, result) => {
-    if (err) {
-      alert(err.message || JSON.stringify(err));
+    if (!username || !email || !password) {
+      alert("Please fill in all fields");
       return;
     }
 
-    alert(
-      "Sign up successful! Please check your email for the confirmation code."
-    );
-    // Redirect to confirmation page with username
-    const returnTo =
-      new URLSearchParams(window.location.search).get("returnTo") || "/";
-    window.location.href = `confirm.html?username=${encodeURIComponent(
-      username
-    )}&returnTo=${encodeURIComponent(returnTo)}`;
+    const attributeList = [
+      new AmazonCognitoIdentity.CognitoUserAttribute({
+        Name: "email",
+        Value: email,
+      }),
+    ];
+
+    userPool.signUp(username, password, attributeList, null, (err, result) => {
+      if (err) {
+        alert(err.message || JSON.stringify(err));
+        return;
+      }
+
+      alert(
+        "Sign up successful! Please check your email for the confirmation code."
+      );
+
+      const returnTo =
+        new URLSearchParams(window.location.search).get("returnTo") || "/";
+      // Use pushState so your SPA router can render the view
+      const confirmUrl = `/auth/confirm?username=${encodeURIComponent(
+        username
+      )}&returnTo=${encodeURIComponent(returnTo)}`;
+      history.pushState({}, "", confirmUrl);
+      window.dispatchEvent(new Event("popstate"));
+    });
   });
-});
+}

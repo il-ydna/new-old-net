@@ -2,6 +2,8 @@ export const poolData = {
   UserPoolId: "us-east-2_lXvCqndHZ",
   ClientId: "b2k3m380g08hmtmdn9osi12vg",
 };
+console.log("Cognito SDK loaded?", typeof AmazonCognitoIdentity);
+
 export const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
 export function getIdToken() {

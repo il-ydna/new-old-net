@@ -4,99 +4,50 @@ const poolData = {
 };
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-const urlParams = new URLSearchParams(window.location.search);
-const username = urlParams.get("username") || "";
-document.getElementById("username").value = username;
+export default function initConfirmForm() {
+  const form = document.getElementById("confirmForm");
+  if (!form) return;
 
-document.getElementById("confirmBtn").addEventListener("click", async () => {
-  const code = document.getElementById("code").value.trim();
-  if (!username || !code) {
-    alert("Please enter username and confirmation code");
-    return;
+  const usernameInput = form.username;
+  const params = new URLSearchParams(window.location.search);
+  const passedUsername = params.get("username");
+
+  if (passedUsername) {
+    usernameInput.value = passedUsername;
   }
 
-  const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-    Username: username,
-    Pool: userPool,
-  });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
 
-  cognitoUser.confirmRegistration(code, true, async (err, result) => {
-    if (err) {
-      alert(err.message || JSON.stringify(err));
+    const username = usernameInput.value.trim();
+    const code = form.code.value.trim();
+
+    if (!username || !code) {
+      alert("Please enter both username and confirmation code.");
       return;
     }
 
-    const password = prompt("Enter your password to finish setup:");
-    if (!password) {
-      alert("Password required to finish registration.");
-      return;
-    }
-
-    const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+    const userData = {
       Username: username,
-      Password: password,
-    });
+      Pool: userPool,
+    };
 
-    cognitoUser.authenticateUser(authDetails, {
-      onSuccess: async (session) => {
-        const idToken = session.getIdToken().getJwtToken();
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+    cognitoUser.confirmRegistration(code, true, (err, result) => {
+      if (err) {
+        alert(err.message || JSON.stringify(err));
+        return;
+      }
 
-        try {
-          const response = await fetch(
-            "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
-              body: JSON.stringify({
-                username,
-                custom_css: "",
-                default_layout: "columns",
-              }),
-            }
-          );
+      alert("Confirmation successful! You can now log in.");
 
-          if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Failed to create user profile");
-          }
-
-          alert("Confirmation successful! You can now log in.");
-          const returnTo =
-            new URLSearchParams(window.location.search).get("returnTo") || "/";
-          window.location.href = `login.html?returnTo=${encodeURIComponent(
-            returnTo
-          )}`;
-        } catch (e) {
-          alert("User confirmed, but profile setup failed: " + e.message);
-          console.error(e);
-        }
-      },
-      onFailure: (authErr) => {
-        alert("Login failed: " + (authErr.message || JSON.stringify(authErr)));
-      },
+      const returnTo = params.get("returnTo") || "/";
+      history.pushState(
+        {},
+        "",
+        `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
+      );
+      window.dispatchEvent(new Event("popstate"));
     });
   });
-});
-
-document.getElementById("resendBtn").addEventListener("click", () => {
-  if (!username) {
-    alert("Username missing");
-    return;
-  }
-
-  const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-    Username: username,
-    Pool: userPool,
-  });
-
-  cognitoUser.resendConfirmationCode((err, result) => {
-    if (err) {
-      alert(err.message || JSON.stringify(err));
-      return;
-    }
-    alert("Confirmation code resent! Check your email.");
-  });
-});
+}

@@ -258,17 +258,30 @@ def handle_user_meta_post(event):
 
 def handle_user_meta_get(event):
     try:
-        user_id = (event.get("queryStringParameters") or {}).get("id")
-        if not user_id:
-            return cors_response(400, {"error": "Missing id"})
+        qs = event.get("queryStringParameters") or {}
+        user_id = qs.get("id")
+        username = qs.get("username")
 
-        resp = users_table.get_item(Key={"id": user_id})
-        item = resp.get("Item")
+        if user_id:
+            resp = users_table.get_item(Key={"id": user_id})
+            item = resp.get("Item")
+        elif username:
+            resp = users_table.query(
+                IndexName="username-index",  # ✅ name of your GSI
+                KeyConditionExpression=Key("username").eq(username)
+            )
+            items = resp.get("Items", [])
+            item = items[0] if items else None
+        else:
+            return cors_response(400, {"error": "Missing id or username"})
+
         if not item:
             return cors_response(404, {"error": "User not found"})
+
         return cors_response(200, decimal_to_native(item))
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
     
 def handle_user_meta_put(event):
     try:

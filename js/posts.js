@@ -6,25 +6,13 @@ import {
 import { showValidationMessage, removeValidationMessage } from "./ui.js";
 import { uploadImageToS3 } from "./upload.js";
 import { renderPosts } from "./render.js";
-
-export const OWNER_ID = "b19b5500-0021-70d5-4f79-c9966e8d1abd";
 import {
   getEditingPostId,
   setEditingPostId,
   setCurrentUser,
   getCurrentUser,
+  getPageOwner,
 } from "./state.js";
-
-const postForm = document.getElementById("postForm");
-const imageInput = document.getElementById("imageInput");
-const layoutInput = document.getElementById("layoutInput");
-const layoutSelected = document.querySelector(
-  "#layout-selector .selected-option"
-);
-const layoutSelector = document.getElementById("layout-selector");
-const previewContainer = document.getElementById("image-preview-container");
-const imageLabel = document.querySelector("#image-drop-zone label");
-const postsSection = document.getElementById("posts");
 
 export async function updateHeader() {
   const userControls = document.getElementById("user-controls");
@@ -33,9 +21,13 @@ export async function updateHeader() {
 
   if (!idToken) {
     const returnTo = encodeURIComponent(window.location.href);
-    userControls.innerHTML = `
-      <button onclick="location.href='auth/signup.html?returnTo=${returnTo}'">Log In/Sign Up</button>
-    `;
+    userControls.innerHTML = `<button id="signupBtn">Log In/Sign Up</button>`;
+    document.getElementById("signupBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      const returnTo = encodeURIComponent(window.location.pathname);
+      history.pushState({}, "", `/auth/signup?returnTo=${returnTo}`);
+      window.dispatchEvent(new Event("popstate"));
+    });
     if (dropdownWrapper) dropdownWrapper.style.display = "none";
     return;
   }
@@ -49,7 +41,7 @@ export async function updateHeader() {
     <button id="logout">Log out</button>
   `;
 
-  if (userId !== OWNER_ID && dropdownWrapper) {
+  if (userId !== getPageOwner()?.id && dropdownWrapper) {
     dropdownWrapper.style.visibility = "hidden";
     dropdownWrapper.style.height = "0";
   }
@@ -70,48 +62,59 @@ export async function updateHeader() {
 }
 
 export async function loadPosts() {
+  const postForm = document.getElementById("postForm");
   const idToken = await getIdToken();
   const currentUser = getCurrentUser();
   if (!idToken || !currentUser) {
-    postForm.style.display = "none";
+    if (postForm) postForm.style.display = "none";
   }
 
-  fetch("https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/")
-    .then((res) => {
-      if (!res.ok) throw new Error("Failed to load posts");
-      return res.json();
-    })
-    .then((posts) => {
-      posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      renderPosts(posts);
-    })
-    .catch(() => {
+  try {
+    const res = await fetch(
+      "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
+    );
+    if (!res.ok) throw new Error("Failed to load posts");
+    const posts = await res.json();
+    posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    renderPosts(posts);
+  } catch {
+    const postsSection = document.getElementById("posts");
+    if (postsSection) {
       postsSection.innerHTML =
         "<p style='color:red; text-align:center;'>Failed to load posts.</p>";
-    });
+    }
+  }
 }
 
 export function initPostForm() {
+  const postForm = document.getElementById("postForm");
   if (!postForm) return;
+
+  const imageInput = document.getElementById("imageInput");
+  const layoutInput = document.getElementById("layoutInput");
+  const layoutSelected = document.querySelector(
+    "#layout-selector .selected-option"
+  );
+  const layoutSelector = document.getElementById("layout-selector");
+  const previewContainer = document.getElementById("image-preview-container");
+  const imageLabel = document.querySelector("#image-drop-zone label");
 
   postForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     removeValidationMessage();
 
     const editingId = getEditingPostId();
-
     const titleInput = postForm.querySelector('input[name="title"]');
     const formData = new FormData(postForm);
-    const files = imageInput.files;
+    const files = imageInput?.files || [];
 
-    if (!titleInput.value.trim()) {
+    if (!titleInput?.value.trim()) {
       showValidationMessage("Give a title.");
       return;
     }
 
     const postId = editingId || crypto.randomUUID();
     const imageUrls = [];
-
     for (let i = 0; i < files.length; i++) {
       const url = await uploadImageToS3(files[i], postId, i);
       imageUrls.push(url);
@@ -119,6 +122,7 @@ export function initPostForm() {
 
     const { id: currentUserId, username: currentUsername } =
       getCurrentUser() || {};
+    const pageOwnerId = getPageOwner()?.id || currentUserId;
 
     const newPost = {
       id: editingId || postId,
@@ -130,10 +134,10 @@ export function initPostForm() {
       timestamp: Date.now(),
       username: currentUsername,
       userId: currentUserId,
-      pageOwnerId: OWNER_ID,
+      pageOwnerId,
     };
 
-    if (currentUserId !== OWNER_ID) {
+    if (currentUserId !== pageOwnerId) {
       newPost.tag = "guest";
     }
 
@@ -143,18 +147,18 @@ export function initPostForm() {
       return;
     }
 
-    const method = editingId ? "PUT" : "POST";
-    const endpoint = "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/";
-
     try {
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify(newPost),
-      });
+      const response = await fetch(
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/",
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify(newPost),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -162,6 +166,7 @@ export function initPostForm() {
         return;
       }
 
+      // Reset form
       setEditingPostId(null);
       postForm.reset();
       previewContainer.innerHTML = "";
@@ -170,6 +175,7 @@ export function initPostForm() {
       layoutSelector.style.display = "none";
       imageLabel.textContent = "Choose/Drop Image";
       imageInput.value = "";
+
       loadPosts();
 
       document.getElementById("submitPostBtn").textContent = "Add Post";

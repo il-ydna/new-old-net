@@ -1,4 +1,4 @@
-// render error messages in submission
+// Show validation error below the post form
 export function showValidationMessage(message) {
   const errorDiv = document.createElement("div");
   errorDiv.id = "form-error";
@@ -7,20 +7,25 @@ export function showValidationMessage(message) {
   errorDiv.style.marginBottom = "1rem";
   errorDiv.style.textAlign = "center";
   errorDiv.style.fontFamily = "Times New Roman";
-  document.getElementById("postForm").append(errorDiv);
+  const form = document.getElementById("postForm");
+  if (form) form.append(errorDiv);
 }
 
+// Remove validation error
 export function removeValidationMessage() {
   const existing = document.getElementById("form-error");
   if (existing) existing.remove();
 }
 
-// dropdown behavior for post tags
+// Set up the tag selector dropdown
 export function setupTagDropdown() {
   const dropdown = document.getElementById("tagDropdown");
+  if (!dropdown) return;
+
   const selected = dropdown.querySelector(".selected-option");
   const options = dropdown.querySelector(".dropdown-options");
   const hiddenInput = document.getElementById("tagInput");
+  if (!selected || !options || !hiddenInput) return;
 
   selected.addEventListener("click", () => {
     options.style.display =
@@ -44,32 +49,48 @@ export function setupTagDropdown() {
   });
 }
 
-// what happens when the cancel button is pressed
+// Handle cancel edit post behavior
 export function setupCancelEditButton() {
-  document.getElementById("cancelEditBtn").addEventListener("click", () => {
+  const cancelBtn = document.getElementById("cancelEditBtn");
+  if (!cancelBtn) return;
+
+  cancelBtn.addEventListener("click", () => {
     const form = document.getElementById("postForm");
+    if (!form) return;
     form.reset();
-    document.getElementById("layoutInput").value = "grid";
-    document.querySelector("#layout-selector .selected-option").textContent =
-      "Grid";
-    document.getElementById("layout-selector").style.display = "none";
-    document.getElementById("image-preview-container").innerHTML = "";
-    document.querySelector("#image-drop-zone label").textContent =
-      "Choose/Drop Image";
-    document.getElementById("imageInput").value = "";
+
+    const layoutSelector = document.getElementById("layout-selector");
+    const layoutInput = document.getElementById("layoutInput");
+    const layoutSelected = layoutSelector?.querySelector(".selected-option");
+    const previewContainer = document.getElementById("image-preview-container");
+    const imageLabel = document.querySelector("#image-drop-zone label");
+    const imageInput = document.getElementById("imageInput");
+    const submitBtn = document.getElementById("submitPostBtn");
+
+    if (layoutInput) layoutInput.value = "grid";
+    if (layoutSelected) layoutSelected.textContent = "Grid";
+    if (layoutSelector) layoutSelector.style.display = "none";
+    if (previewContainer) previewContainer.innerHTML = "";
+    if (imageLabel) imageLabel.textContent = "Choose/Drop Image";
+    if (imageInput) imageInput.value = "";
+    if (submitBtn) submitBtn.textContent = "Add Post";
+
     form.classList.remove("editing");
-    document.getElementById("cancelEditBtn").style.display = "none";
-    document.getElementById("submitPostBtn").textContent = "Add Post";
+    cancelBtn.style.display = "none";
   });
 }
 
-// image layout dropdown
-export function setupLayoutDropdown() {
-  const layoutDropdown = document.getElementById("layout-selector");
-  const layoutSelected = layoutDropdown.querySelector(".selected-option");
-  const layoutOptions = layoutDropdown.querySelector(".dropdown-options");
+// Post image layout dropdown (inside form)
+export function setupImageLayoutDropdown() {
+  const layoutSelector = document.getElementById("layout-selector");
+  if (!layoutSelector) return;
+
+  const layoutSelected = layoutSelector.querySelector(".selected-option");
+  const layoutOptions = layoutSelector.querySelector(".dropdown-options");
   const layoutInput = document.getElementById("layoutInput");
   const imageInput = document.getElementById("imageInput");
+
+  if (!layoutSelected || !layoutOptions || !layoutInput || !imageInput) return;
 
   layoutSelected.addEventListener("click", () => {
     layoutOptions.style.display =
@@ -83,8 +104,7 @@ export function setupLayoutDropdown() {
       layoutInput.value = value;
       layoutOptions.style.display = "none";
 
-      const currentFiles = imageInput.files;
-      if (currentFiles && currentFiles.length > 0) {
+      if (imageInput.files.length > 0) {
         const event = new CustomEvent("rerender-preview");
         imageInput.dispatchEvent(event);
       }
@@ -92,24 +112,26 @@ export function setupLayoutDropdown() {
   });
 
   document.addEventListener("click", (e) => {
-    if (!layoutDropdown.contains(e.target)) {
+    if (!layoutSelector.contains(e.target)) {
       layoutOptions.style.display = "none";
     }
   });
 }
 
-// page-wide post layout dropdown
-export function setupPostLayoutDropdown() {
+// Page-wide layout dropdown (e.g. columns vs timeline)
+export function setupPostLayoutToggle() {
   const dropdown = document.getElementById("post-layout-selector");
-  if (!dropdown) return;
+  const posts = document.getElementById("posts");
+  if (!dropdown || !posts) return;
 
   const selected = dropdown.querySelector(".selected-option");
   const options = dropdown.querySelector(".dropdown-options");
-  const posts = document.getElementById("posts");
 
-  // ✅ Restore saved layout
+  if (!selected || !options) return;
+
+  // Restore saved preference
   const savedLayout = localStorage.getItem("preferredPostLayout");
-  if (savedLayout && posts) {
+  if (savedLayout) {
     posts.className = "";
     posts.classList.add(`layout-${savedLayout}`);
     posts.dataset.layout = savedLayout;
@@ -132,11 +154,9 @@ export function setupPostLayoutDropdown() {
       const layout = option.getAttribute("data-value");
       selected.textContent = option.textContent;
       options.style.display = "none";
-      posts.dataset.layout = layout;
       posts.className = "";
       posts.classList.add(`layout-${layout}`);
-
-      // ✅ Save to localStorage
+      posts.dataset.layout = layout;
       localStorage.setItem("preferredPostLayout", layout);
     });
   });
