@@ -31,8 +31,10 @@ document.getElementById("signUpBtn").addEventListener("click", () => {
       "Sign up successful! Please check your email for the confirmation code."
     );
     // Redirect to confirmation page with username
+    const returnTo =
+      new URLSearchParams(window.location.search).get("returnTo") || "/";
     window.location.href = `confirm.html?username=${encodeURIComponent(
       username
-    )}`;
+    )}&returnTo=${encodeURIComponent(returnTo)}`;
   });
 });

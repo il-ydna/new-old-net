@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@5.2.3/dist/amazon-cognito-identity.min.js"></script>
+    <script type="module" src="js/edit.js"></script>
+    <title>Edit My Page</title>
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/form.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/edit.css" />
+    <script type="module" src="js/edit.js"></script>
+  </head>
+  <body>
+    <header><div id="user-controls"></div></header>
+    <h2>Edit Your Page</h2>
+
+    <form id="settingsForm">
+      <div class="preview-wrapper">
+        <div id="bgPreview" class="bg-preview" tabindex="0">
+          <input type="file" id="bgFileInput" accept="image/*" hidden />
+          <label for="bgFileInput" class="drop-label">Choose/Drop Image</label>
+        </div>
+        <button id="removeBgBtn" type="button" class="remove-btn">Clear</button>
+        <div id="uploadProgressBar" class="progress-bar">
+          <div class="bar-fill"></div>
+        </div>
+      </div>
+
+      <label>
+        Default Post Layout:
+        <select id="layoutSelect">
+          <option value="columns">Columns</option>
+          <option value="stack">Timeline</option>
+        </select>
+      </label>
+
+      <label>
+        Custom CSS:
+        <textarea
+          id="cssInput"
+          rows="10"
+          placeholder="Enter your custom CSS..."
+        ></textarea>
+      </label>
+
+      <button type="submit">Save Changes</button>
+    </form>
+
+    <p id="saveStatus" style="text-align: center; margin-top: 1rem"></p>
+  </body>
+  <script type="module" src="js/edit.js"></script>
+</html>

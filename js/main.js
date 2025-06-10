@@ -7,8 +7,7 @@ import {
 } from "./ui.js";
 import { setupImageUploader } from "./upload.js";
 import "./render.js";
-
-window.addEventListener("DOMContentLoaded", () => {
+export default function initMain() {
   updateHeader();
   loadPosts();
   setupLayoutDropdown();
@@ -16,4 +15,6 @@ window.addEventListener("DOMContentLoaded", () => {
   setupImageUploader();
   setupCancelEditButton();
   setupPostLayoutDropdown();
-});
+}
+
+window.addEventListener("DOMContentLoaded", initMain);

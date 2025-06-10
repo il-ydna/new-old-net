@@ -83,7 +83,7 @@ export function renderPosts(posts, currentUserId = null) {
 
       const signature = isPostOwner
         ? ""
-        : `<small>Posted by <strong>${username}</strong></small>`;
+        : `<small>Posted by <a href="user.html?id=${post.pageOwnerId}" style="color:white; text-decoration:underline;"><strong>${username}</strong></a></small>`;
 
       let imageHTML = "";
       if (Array.isArray(post.images) && post.images.length > 0) {

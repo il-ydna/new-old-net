@@ -1,0 +1,110 @@
+/* Optional: semi-transparent background for readability */
+form,
+#posts {
+  background: rgba(0, 0, 0, 0.6); /* dark translucent background */
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.post {
+  position: relative; /* allow absolute positioning inside */
+  padding: 1rem;
+  margin-block: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.post.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tag-pill {
+  position: absolute;
+  top: 1.5rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--pill-color, #ccc);
+  color: #ece3e4;
+  font-size: 0.65rem;
+  border-radius: 999px;
+  padding: 0;
+  width: 10px;
+  height: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.3s ease, padding 0.3s ease;
+  text-align: center;
+}
+
+.tag-pill:hover {
+  width: auto;
+  padding: 0 0.6rem;
+}
+
+.tag-pill:hover .pill-label {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+.post.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.post h3 {
+  margin: 0 0 0.25rem 0;
+}
+
+.post small {
+  color: #ccc;
+}
+
+.post button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+/* Form and posts containers stretch full width */
+form,
+#posts {
+  margin: 0; /* remove side gaps */
+  padding: 0.75rem;
+}
+
+/* style of each post in timeline layout */
+#posts.layout-timeline article.post {
+  margin-bottom: 1.5rem;
+}
+
+/* style of the columns*/
+#posts.layout-columns {
+  column-count: 2;
+  column-gap: 1rem;
+}
+
+/* style of each post in column layout */
+#posts.layout-columns article.post {
+  break-inside: avoid;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+#posts.layout-columns ~ * {
+  max-width: 100%;
+}
+
+#posts.layout-columns article.post:first-child {
+  margin-top: 0;
+}

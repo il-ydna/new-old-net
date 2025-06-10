@@ -1,0 +1,130 @@
+body {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  color: white;
+  font-family: "Times New Roman", serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+header {
+  display: flex;
+  justify-content: space-between; /* <-- distributes layout selector and user controls */
+  align-items: center;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  max-width: 600px; /* or whatever your layout width is */
+}
+
+#user-controls {
+  display: flex;
+  align-items: center; /* vertically center */
+  gap: 1rem; /* space between username and button */
+  justify-content: flex-end;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  padding: 0;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 4vw;
+  display: flex;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-family: "Times New Roman";
+  border-radius: 4px;
+  justify-content: center;
+  border-width: 2px;
+  border-style: outset;
+  border-color: buttonborder;
+  text-align: center;
+}
+
+.pill-label {
+  opacity: 0;
+  transition: none;
+  user-select: none;
+}
+
+img {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ---- Mobile tweaks: make posts use full width ---- */
+@media (max-width: 768px) {
+  /* Let the whole page flow edge-to-edge */
+  body {
+    max-width: 100%;
+    margin: 0; /* optional: flush sides */
+    padding: 0.75rem; /* a little breathing room */
+  }
+
+  /* Each individual post fills the width */
+  .post {
+    width: 100%;
+    margin-inline: 0; /* no left/right margin */
+    box-sizing: border-box;
+  }
+}
+
+.image-preview-container {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.preview-image {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0px;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 162, 97, 0.8);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(244, 162, 97, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 162, 97, 0);
+  }
+}
+
+body:has(#posts.layout-columns) {
+  max-width: 100%;
+  padding: 1rem 3rem;
+  margin: 0 auto;
+}

@@ -27,8 +27,9 @@ export async function updateHeader() {
   const dropdownWrapper = document.getElementById("tag-dropdown-wrapper");
 
   if (!idToken) {
+    const returnTo = encodeURIComponent(window.location.href);
     userControls.innerHTML = `
-      <button onclick="location.href='auth/signup.html'">Log In/Sign Up</button>
+      <button onclick="location.href='auth/signup.html?returnTo=${returnTo}'">Log In/Sign Up</button>
     `;
     if (dropdownWrapper) dropdownWrapper.style.display = "none";
     return;
@@ -47,16 +48,19 @@ export async function updateHeader() {
     dropdownWrapper.style.height = "0";
   }
 
-  document.getElementById("logout").addEventListener("click", () => {
-    const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-      UserPoolId: "us-east-2_lXvCqndHZ",
-      ClientId: "b2k3m380g08hmtmdn9osi12vg",
+  const logoutBtn = document.getElementById("logout");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+        UserPoolId: "us-east-2_lXvCqndHZ",
+        ClientId: "b2k3m380g08hmtmdn9osi12vg",
+      });
+      const cognitoUser = userPool.getCurrentUser();
+      if (cognitoUser) cognitoUser.signOut();
+      localStorage.removeItem("idToken");
+      window.location.reload();
     });
-    const cognitoUser = userPool.getCurrentUser();
-    if (cognitoUser) cognitoUser.signOut();
-    localStorage.removeItem("idToken");
-    window.location.reload();
-  });
+  }
 }
 
 export async function loadPosts() {
@@ -84,91 +88,95 @@ export async function loadPosts() {
     });
 }
 
-postForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  removeValidationMessage();
+export function initPostForm() {
+  if (!postForm) return;
 
-  const titleInput = postForm.querySelector('input[name="title"]');
-  const formData = new FormData(postForm);
-  const files = imageInput.files;
+  postForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    removeValidationMessage();
 
-  if (!titleInput.value.trim()) {
-    showValidationMessage("Give a title.");
-    return;
-  }
+    const titleInput = postForm.querySelector('input[name="title"]');
+    const formData = new FormData(postForm);
+    const files = imageInput.files;
 
-  const postId = editingPostId || crypto.randomUUID();
-  const imageUrls = [];
-
-  for (let i = 0; i < files.length; i++) {
-    const url = await uploadImageToS3(files[i], postId, i);
-    imageUrls.push(url);
-  }
-
-  const currentUserId = await getUserIdFromToken();
-  const currentUsername = await getUsernameFromToken();
-
-  const newPost = {
-    id: editingPostId || postId,
-    title: formData.get("title"),
-    content: formData.get("content"),
-    images: imageUrls,
-    tag: formData.get("tag") || "general",
-    layout: formData.get("layout") || "grid",
-    timestamp: Date.now(),
-    username: await getUsernameFromToken(),
-    userId: currentUserId,
-    pageOwnerId: OWNER_ID,
-  };
-
-  if (currentUserId !== OWNER_ID) {
-    newPost.tag = "guest";
-  }
-
-  // Add `id` only if editing (your Lambda generates a new one otherwise)
-  if (editingPostId) {
-    newPost.id = editingPostId;
-  }
-
-  const idToken = await getIdToken();
-  if (!idToken) {
-    showValidationMessage("Please log in to submit posts.");
-    return;
-  }
-
-  const method = editingPostId ? "PUT" : "POST";
-  const endpoint = "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/";
-
-  try {
-    const response = await fetch(endpoint, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify(newPost),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      showValidationMessage(errorData.error || "Failed to submit post");
+    if (!titleInput.value.trim()) {
+      showValidationMessage("Give a title.");
       return;
     }
 
-    editingPostId = null;
-    postForm.reset();
-    previewContainer.innerHTML = "";
-    layoutInput.value = "grid";
-    layoutSelected.textContent = "Grid";
-    layoutSelector.style.display = "none";
-    imageLabel.textContent = "Choose/Drop Image";
-    imageInput.value = "";
-    loadPosts();
+    const postId = editingPostId || crypto.randomUUID();
+    const imageUrls = [];
 
-    document.getElementById("submitPostBtn").textContent = "Add Post";
-    postForm.classList.remove("editing");
-    document.getElementById("cancelEditBtn").style.display = "none";
-  } catch (error) {
-    showValidationMessage("Network error. Try again.");
-  }
-});
+    for (let i = 0; i < files.length; i++) {
+      const url = await uploadImageToS3(files[i], postId, i);
+      imageUrls.push(url);
+    }
+
+    const currentUserId = await getUserIdFromToken();
+    const currentUsername = await getUsernameFromToken();
+
+    const newPost = {
+      id: editingPostId || postId,
+      title: formData.get("title"),
+      content: formData.get("content"),
+      images: imageUrls,
+      tag: formData.get("tag") || "general",
+      layout: formData.get("layout") || "grid",
+      timestamp: Date.now(),
+      username: await getUsernameFromToken(),
+      userId: currentUserId,
+      pageOwnerId: OWNER_ID,
+    };
+
+    if (currentUserId !== OWNER_ID) {
+      newPost.tag = "guest";
+    }
+
+    // Add `id` only if editing (your Lambda generates a new one otherwise)
+    if (editingPostId) {
+      newPost.id = editingPostId;
+    }
+
+    const idToken = await getIdToken();
+    if (!idToken) {
+      showValidationMessage("Please log in to submit posts.");
+      return;
+    }
+
+    const method = editingPostId ? "PUT" : "POST";
+    const endpoint = "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/";
+
+    try {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(newPost),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showValidationMessage(errorData.error || "Failed to submit post");
+        return;
+      }
+
+      editingPostId = null;
+      postForm.reset();
+      previewContainer.innerHTML = "";
+      layoutInput.value = "grid";
+      layoutSelected.textContent = "Grid";
+      layoutSelector.style.display = "none";
+      imageLabel.textContent = "Choose/Drop Image";
+      imageInput.value = "";
+      loadPosts();
+
+      document.getElementById("submitPostBtn").textContent = "Add Post";
+      postForm.classList.remove("editing");
+      document.getElementById("cancelEditBtn").style.display = "none";
+    } catch (error) {
+      showValidationMessage("Network error. Try again.");
+    }
+  });
+}

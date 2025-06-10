@@ -1,0 +1,124 @@
+html {
+  min-height: 100%;
+  background-color: #0f0f0f; /* fallback */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+}
+
+body {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  color: white;
+  font-family: "Times New Roman", serif;
+  background-color: rgba(
+    255,
+    0,
+    0,
+    0.6
+  ); /* optional dark overlay for readability */
+  border-radius: 0.5rem;
+}
+
+.bg-preview {
+  margin-top: 0.5rem;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  opacity: 0.9;
+}
+
+#saveStatus {
+  text-align: center;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.preview-wrapper {
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.bg-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  opacity: 0.9;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.bg-preview.dragover {
+  outline: 3px dashed #fff;
+  outline-offset: -5px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.drop-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.9rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.3rem;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+
+.bg-preview.has-image .drop-label {
+  opacity: 0;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-size: 0.5rem;
+  z-index: 2;
+}
+
+.preview-wrapper:hover .remove-btn {
+  opacity: 1;
+}
+.bg-preview.has-image .drop-label {
+  opacity: 0;
+}
+
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  overflow: hidden;
+  z-index: 1;
+  display: none;
+}
+
+.progress-bar .bar-fill {
+  height: 100%;
+  width: 0%;
+  background: limegreen;
+  transition: width 0.2s ease;
+}

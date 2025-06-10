@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 from urllib.parse import urlparse
 
+# Setup
 s3 = boto3.client(
     's3',
     region_name=os.environ['REGION_NAME'],
@@ -18,17 +19,14 @@ s3 = boto3.client(
 bucket_name = os.environ['S3_BUCKET_NAME']
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(os.environ['TABLE_NAME']) 
+posts_table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
+users_table = dynamodb.Table(os.environ['USERS_TABLE_NAME'])
 
-# helper funcs
+# Helpers
 def get_user_claims(event):
-    """
-    Pull Cognito JWT claims that API Gateway’s authorizer injects.
-    """
     try:
         return event["requestContext"]["authorizer"]["jwt"]["claims"]
     except KeyError:
-        # Shouldn’t happen unless the route isn’t protected
         return {}
 
 def decimal_to_native(obj):
@@ -45,7 +43,6 @@ def upload_image_to_s3(base64_str, post_id):
     try:
         if ',' in base64_str:
             base64_str = base64_str.split(",")[1]
-
         image_bytes = base64.b64decode(base64_str)
         key = f"posts/{post_id}.jpg"
 
@@ -54,74 +51,70 @@ def upload_image_to_s3(base64_str, post_id):
             Key=key,
             Body=image_bytes,
             ContentType='image/jpeg',
-            ACL='public-read'  # Make the image public
+            ACL='public-read'
         )
-
-        # Public URL format for S3 objects
         public_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{key}"
-
         print(f"Uploaded image to {public_url}")
         return public_url
-
     except Exception as e:
         print(f"Error uploading image: {e}")
         raise
 
-
+# Entry point
 def lambda_handler(event, context):
     method = event.get("requestContext", {}).get("http", {}).get("method")
     path = event.get("rawPath")
+    qs = event.get("queryStringParameters") or {}
 
     print("Received event:")
-    print(json.dumps(event, indent=2))  # Log incoming event for debugging
+    print(json.dumps(event, indent=2))
 
-    if path != "/":
-        return cors_response(404, {"message": "Not Found"})
+    # Posts routes
+    if path == "/":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "GET" and "presign" in qs:
+            return handle_presign(event)
+        if method == "GET":
+            return handle_get(event)
+        if method == "POST":
+            return handle_post(event)
+        if method == "PUT":
+            return handle_put(event)
+        if method == "DELETE":
+            return handle_delete(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
 
-    if method == "OPTIONS":
-        return handle_options(event)
+    # User profile routes
+    if path == "/user-meta":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "POST":
+            return handle_user_meta_post(event)
+        if method == "GET":
+            return handle_user_meta_get(event)
+        if method == "PUT":
+            return handle_user_meta_put(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
 
-    qs = event.get("queryStringParameters") or {}
-    if method == "GET" and "presign" in qs:
-        return handle_presign(event)
+    return cors_response(404, {"message": "Not Found"})
 
-    if method == "GET":
-        return handle_get(event)
-
-    if method == "POST":
-        return handle_post(event)
-
-    if method == "DELETE":
-        return handle_delete(event)
-    
-    if method == "PUT":
-        return handle_put(event)
-
-    return cors_response(405, {"error": "Method Not Allowed"})
-
-# handlers
+# Handlers
 def handle_options(event):
     return cors_response(200, {"message": "CORS preflight successful"})
 
-
 def handle_get(event):
     try:
-        resp = table.scan()
-        items = resp.get("Items", [])
-        items = decimal_to_native(items)
-        response = cors_response(200, items)
-        print("GET response headers:", response["headers"])  # ✅ add this
-        return response
+        resp = posts_table.scan()
+        items = decimal_to_native(resp.get("Items", []))
+        return cors_response(200, items)
     except Exception as e:
-        tb = traceback.format_exc()
-        print(f"GET error: {tb}")
-        return cors_response(500, {"error": str(e), "traceback": tb})
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
 def handle_presign(event):
     try:
         claims = get_user_claims(event)
         user_sub = claims.get("sub", "anonymous")
-
         qs = event.get("queryStringParameters") or {}
         post_id = qs.get("post_id")
         index = qs.get("index", "0")
@@ -130,32 +123,26 @@ def handle_presign(event):
             return cors_response(400, {"error": "Missing post_id"})
 
         key = f"posts/{post_id}_{index}.jpg"
-
         url = s3.generate_presigned_url(
             ClientMethod="put_object",
             Params={
                 "Bucket": bucket_name,
                 "Key": key,
                 "ContentType": "image/jpeg",
-                "ACL": "public-read"  # ✅ THIS MUST MATCH YOUR FRONTEND UPLOAD HEADERS
+                "ACL": "public-read"
             },
             ExpiresIn=300
         )
-
         public_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{key}"
         return cors_response(200, {"upload_url": url, "public_url": public_url})
-
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
-
 
 def handle_post(event):
     try:
         claims = get_user_claims(event)
-        user_sub   = claims.get("sub")
+        user_sub = claims.get("sub")
         user_name = claims.get("cognito:username")
-
-        print("username from token:", claims.get("cognito:username"))
 
         body = json.loads(event.get("body", "{}"))
         for field in ["title", "content", "timestamp"]:
@@ -171,136 +158,152 @@ def handle_post(event):
             "content": body.get("content"),
             "tag": body.get("tag", "general"),
             "timestamp": body.get("timestamp"),
-            "images": body.get("images", []), 
+            "images": body.get("images", []),
             "layout": body.get("layout", "grid"),
             "pageOwnerId": body.get("pageOwnerId", user_sub)
         }
 
-        table.put_item(Item=post_item)
+        posts_table.put_item(Item=post_item)
         return cors_response(200, {"message": "Post saved successfully", "id": post_id})
-
     except Exception as e:
-        tb = traceback.format_exc()
-        print(f"POST error: {tb}")
-        return cors_response(500, {"error": str(e), "traceback": tb})
-
-
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
 def handle_delete(event):
-    print('deleting')
     try:
         claims = get_user_claims(event)
         user_sub = claims.get("sub")
-
-        qs_params = event.get("queryStringParameters") or {}
-        post_id = qs_params.get("id")
+        post_id = (event.get("queryStringParameters") or {}).get("id")
         if not post_id:
-            return cors_response(400, {"error": "Missing 'id' query parameter"})
+            return cors_response(400, {"error": "Missing 'id'"})
 
-        # Get the post to validate and retrieve image key
-        resp = table.get_item(Key={"id": post_id})
+        resp = posts_table.get_item(Key={"id": post_id})
         item = resp.get("Item")
         if not item:
-            return cors_response(404, {"error": f"Post {post_id} not found"})
+            return cors_response(404, {"error": "Post not found"})
 
-        post_owner = item.get("userId")
-        page_owner = item.get("pageOwnerId")
-
-        print(f"user: {user_sub}, post owner: {post_owner}, page owner: {page_owner}")
-        if user_sub != post_owner and user_sub != page_owner:
+        if user_sub != item.get("userId") and user_sub != item.get("pageOwnerId"):
             return cors_response(403, {"error": "Not authorized to delete this post"})
 
-        image_urls = item.get("images", [])
-        for url in image_urls:
-            parsed_url = urlparse(url)
-            key = parsed_url.path.lstrip('/')
+        for url in item.get("images", []):
+            key = urlparse(url).path.lstrip('/')
             try:
                 s3.delete_object(Bucket=bucket_name, Key=key)
-                print(f"Deleted image {key} from S3")
             except Exception as e:
-                print(f"Error deleting image {key} from S3: {e}")
+                print(f"Error deleting image: {e}")
 
-
-        # Delete post from DynamoDB
-        response = table.delete_item(
-            Key={"id": post_id},
-            ConditionExpression="attribute_exists(id)"
-        )
-
-        if response.get("ResponseMetadata", {}).get("HTTPStatusCode") == 200:
-            return cors_response(200, {"message": f"Post {post_id} deleted successfully"})
-        else:
-            return cors_response(500, {"error": "Failed to delete post"})
-
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-            return cors_response(404, {"error": f"Post with id {post_id} does not exist"})
-        else:
-            raise
+        posts_table.delete_item(Key={"id": post_id})
+        return cors_response(200, {"message": f"Post {post_id} deleted"})
     except Exception as e:
-        tb = traceback.format_exc()
-        return cors_response(500, {"error": str(e), "traceback": tb})
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
 def handle_put(event):
     try:
         claims = get_user_claims(event)
         user_sub = claims.get("sub")
-
         body = json.loads(event.get("body", "{}"))
         post_id = body.get("id")
-
         if not post_id:
             return cors_response(400, {"error": "Missing post ID"})
 
-        # Fetch the existing post to verify ownership
-        resp = table.get_item(Key={"id": post_id})
+        resp = posts_table.get_item(Key={"id": post_id})
         item = resp.get("Item")
-
         if not item:
-            return cors_response(404, {"error": f"Post {post_id} not found"})
-        print(f"user_sub: {user_sub}")
-        print(f"item.userId: {item.get('userId')}")
-        print(f"equal: {item.get('userId') == user_sub}")
+            return cors_response(404, {"error": "Post not found"})
         if item.get("userId") != user_sub:
             return cors_response(403, {"error": "Not your post"})
 
         new_images = body.get("images", [])
         existing_images = item.get("images", [])
-
-        # Delete all old images from S3 if new images are provided
         if new_images and new_images != existing_images:
             for url in existing_images:
-                parsed_url = urlparse(url)
-                key = parsed_url.path.lstrip('/')
+                key = urlparse(url).path.lstrip('/')
                 try:
                     s3.delete_object(Bucket=bucket_name, Key=key)
-                except Exception as e:
-                    print(f"Failed to delete old image: {e}")
+                except:
+                    pass
 
-            uploaded = []
-            for idx, base64_img in enumerate(new_images):
-                if base64_img:
-                    uploaded.append(upload_image_to_s3(base64_img, f"{post_id}_{idx}"))
-            body["images"] = uploaded
-        else:
-            body["images"] = existing_images
-
-
-        # Only allow certain fields to be updated
         allowed_fields = ["title", "content", "tag", "images", "layout", "timestamp"]
-        updated_data = {k: v for k, v in body.items() if k in allowed_fields}
-        updated_data["id"] = post_id
-        updated_data["userId"] = user_sub
-        updated_data["user_name"] = claims.get("username")
+        updated_data = {k: body.get(k) for k in allowed_fields}
+        updated_data.update({
+            "id": post_id,
+            "userId": user_sub,
+            "user_name": claims.get("username"),
+            "images": new_images if new_images else existing_images
+        })
 
-        table.put_item(Item=updated_data)
-
-        return cors_response(200, {"message": "Post updated successfully"})
-
+        posts_table.put_item(Item=updated_data)
+        return cors_response(200, {"message": "Post updated"})
     except Exception as e:
-        tb = traceback.format_exc()
-        return cors_response(500, {"error": str(e), "traceback": tb})
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
+# User profile handlers
+def handle_user_meta_post(event):
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+        username = claims.get("cognito:username")
+
+        body = json.loads(event.get("body", "{}"))
+        item = {
+            "id": user_id,
+            "username": username,
+            "custom_css": body.get("custom_css", ""),
+            "default_layout": body.get("default_layout", "columns"),
+            "background_url": body.get("background_url", "")
+        }
+        users_table.put_item(Item=item)
+        return cors_response(200, {"message": "User profile created"})
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
+def handle_user_meta_get(event):
+    try:
+        user_id = (event.get("queryStringParameters") or {}).get("id")
+        if not user_id:
+            return cors_response(400, {"error": "Missing id"})
+
+        resp = users_table.get_item(Key={"id": user_id})
+        item = resp.get("Item")
+        if not item:
+            return cors_response(404, {"error": "User not found"})
+        return cors_response(200, decimal_to_native(item))
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+    
+def handle_user_meta_put(event):
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+        body = json.loads(event.get("body", "{}"))
+        allowed_fields = ["custom_css", "default_layout", "background_url"]
+
+        update = {k: v for k, v in body.items() if k in allowed_fields}
+        update["id"] = user_id
+
+        # If a staged background was used, copy to final key
+        bg_url = update.get("background_url", "")
+        if bg_url and "_staged_" in bg_url:
+            staged_key = f"posts/bg_{user_id}_staged_0.jpg"
+            final_key = f"posts/bg_{user_id}_final.jpg"
+
+            s3.copy_object(
+                Bucket=bucket_name,
+                CopySource=f"{bucket_name}/{staged_key}",
+                Key=final_key,
+                ACL="public-read",
+                ContentType="image/jpeg",
+            )
+
+            final_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
+            update["background_url"] = final_url
+
+        users_table.put_item(Item=update)
+        return cors_response(200, {"message": "User profile updated"})
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
+
+# CORS helper
 def cors_response(status_code, body_dict):
     return {
         "statusCode": status_code,

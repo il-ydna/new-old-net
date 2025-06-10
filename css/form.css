@@ -1,0 +1,30 @@
+input:not([type="file"]),
+textarea {
+  all: unset;
+  background-color: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-family: "Times New Roman";
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word; /* for older browsers */
+  overflow-wrap: break-word;
+}
+
+
+
+form.editing {
+  border: 5px #f4a261;
+  animation: pulse-border 1s infinite;
+  transition: background-color 0.3s ease;
+}
+
+
+
+form {
+  max-width: 600px;
+  margin: auto;
+  margin-bottom: 2rem;
+}
