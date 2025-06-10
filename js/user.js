@@ -1,7 +1,7 @@
 import { renderPosts } from "./render.js";
 import { setupPostLayoutDropdown } from "./ui.js";
 import { updateHeader } from "./posts.js";
-import { getCurrentUser } from "./state.js";
+import { getCurrentUser, setPageOwner, getPageOwner } from "./state.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await updateHeader(); // ✅ Add this line
@@ -9,6 +9,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const params = new URLSearchParams(window.location.search);
   const pageOwnerId = params.get("id");
+  setPageOwner({ id: pageOwnerId });
 
   if (!pageOwnerId) {
     document.getElementById("posts").innerHTML =
@@ -16,9 +17,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const currentUserId = getCurrentUser()?.id;
-
-  if (currentUserId === pageOwnerId) {
+  if (getCurrentUser()?.id === getPageOwner()?.id) {
     // Show form and dropdown
     document.getElementById("owner-controls").style.display = "block";
 
@@ -29,7 +28,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const userMetaRes = await fetch(
-      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwnerId}`
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${
+        getPageOwner()?.id
+      }`
     );
     const userMeta = await userMetaRes.json();
 
@@ -62,8 +63,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
     );
     const posts = await response.json();
-    const userPosts = posts.filter((p) => p.pageOwnerId === pageOwnerId);
-    renderPosts(userPosts, currentUserId);
+    const userPosts = posts.filter((p) => p.pageOwnerId === getPageOwner()?.id);
+    renderPosts(userPosts);
   } catch (e) {
     document.getElementById("posts").innerHTML =
       "<p style='color:red; text-align:center;'>Failed to load posts.</p>";
