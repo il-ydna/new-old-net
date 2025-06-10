@@ -293,13 +293,14 @@ def handle_user_meta_put(event):
         update = {k: v for k, v in body.items() if k in allowed_fields}
         update["id"] = user_id
 
-        # If a staged background was used, copy to final key
+        existing = users_table.get_item(Key={"id": user_id}).get("Item")
+        if existing and "username" in existing:
+            update["username"] = existing["username"]
+
         bg_url = update.get("background_url", "")
         if bg_url and "_staged_" in bg_url:
-            print('changing from staged to final now')
             staged_key = f"posts/bg_{user_id}_staged_0.jpg"
             final_key = f"posts/bg_{user_id}_final.jpg"
-
             s3.copy_object(
                 Bucket=bucket_name,
                 CopySource=f"{bucket_name}/{staged_key}",
@@ -307,15 +308,13 @@ def handle_user_meta_put(event):
                 ACL="public-read",
                 ContentType="image/jpeg",
             )
-
-            final_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
-            print(final_url)
-            update["background_url"] = final_url
+            update["background_url"] = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
 
         users_table.put_item(Item=update)
         return cors_response(200, {"message": "User profile updated"})
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
 
 
 # CORS helper

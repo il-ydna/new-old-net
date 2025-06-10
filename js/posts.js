@@ -14,20 +14,23 @@ import {
   getPageOwner,
 } from "./state.js";
 
+import { renderUserControls } from "./ui.js";
+
 export async function updateHeader() {
-  const userControls = document.getElementById("user-controls");
   const idToken = await getIdToken();
+  const userControls = document.getElementById("user-controls");
   const dropdownWrapper = document.getElementById("tag-dropdown-wrapper");
 
   if (!idToken) {
-    const returnTo = encodeURIComponent(window.location.href);
-    userControls.innerHTML = `<button id="signupBtn">Log In/Sign Up</button>`;
-    document.getElementById("signupBtn").addEventListener("click", (e) => {
-      e.preventDefault();
-      const returnTo = encodeURIComponent(window.location.pathname);
-      history.pushState({}, "", `/auth/signup?returnTo=${returnTo}`);
-      window.dispatchEvent(new Event("popstate"));
-    });
+    if (userControls) {
+      userControls.innerHTML = `<button id="signupBtn">Log In/Sign Up</button>`;
+      document.getElementById("signupBtn").addEventListener("click", (e) => {
+        e.preventDefault();
+        const returnTo = encodeURIComponent(window.location.pathname);
+        history.pushState({}, "", `/auth/signup?returnTo=${returnTo}`);
+        window.dispatchEvent(new Event("popstate"));
+      });
+    }
     if (dropdownWrapper) dropdownWrapper.style.display = "none";
     return;
   }
@@ -36,28 +39,9 @@ export async function updateHeader() {
   const userId = await getUserIdFromToken();
   setCurrentUser({ id: userId, username });
 
-  userControls.innerHTML = `
-    <div id="username">Signed in as ${username}</div>
-    <button id="logout">Log out</button>
-  `;
-
-  if (userId !== getPageOwner()?.id && dropdownWrapper) {
-    dropdownWrapper.style.visibility = "hidden";
-    dropdownWrapper.style.height = "0";
-  }
-
-  const logoutBtn = document.getElementById("logout");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-        UserPoolId: "us-east-2_lXvCqndHZ",
-        ClientId: "b2k3m380g08hmtmdn9osi12vg",
-      });
-      const cognitoUser = userPool.getCurrentUser();
-      if (cognitoUser) cognitoUser.signOut();
-      localStorage.removeItem("idToken");
-      window.location.reload();
-    });
+  if (userControls) {
+    const controlsEl = renderUserControls();
+    userControls.replaceWith(controlsEl); // ✅ replace static placeholder
   }
 }
 
@@ -65,6 +49,8 @@ export async function loadPosts() {
   const postForm = document.getElementById("postForm");
   const idToken = await getIdToken();
   const currentUser = getCurrentUser();
+  const pageOwner = getPageOwner(); // 🆕
+
   if (!idToken || !currentUser) {
     if (postForm) postForm.style.display = "none";
   }
@@ -76,7 +62,12 @@ export async function loadPosts() {
     if (!res.ok) throw new Error("Failed to load posts");
     const posts = await res.json();
     posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    renderPosts(posts);
+
+    const filteredPosts = pageOwner
+      ? posts.filter((p) => p.pageOwnerId === pageOwner.id) // 🧠 filter by current page owner
+      : posts;
+
+    renderPosts(filteredPosts);
   } catch {
     const postsSection = document.getElementById("posts");
     if (postsSection) {

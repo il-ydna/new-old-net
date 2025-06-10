@@ -1,7 +1,8 @@
 import { renderPosts } from "./render.js";
-import { setupPostLayoutToggle } from "./ui.js";
+import { setupPostLayoutToggle, createEditPageButton } from "./ui.js";
 import { updateHeader, loadPosts } from "./posts.js";
 import { getCurrentUser, setPageOwner } from "./state.js";
+import { applyUserBackground } from "./ui.js";
 
 export function renderPostFormHTML() {
   return `
@@ -73,7 +74,7 @@ export async function renderUserPage(username) {
   // Inject full shell + post form
   app.innerHTML = `
     <header>
-      <div class="custom-dropdown" id="post-layout-selector">
+      <div class="custom-dropdown button-style" id="post-layout-selector">
         <div class="selected-option">Timeline</div>
         <div class="dropdown-options">
           <div class="dropdown-option" data-value="columns">Columns</div>
@@ -103,6 +104,10 @@ export async function renderUserPage(username) {
 
     setPageOwner({ id: userMeta.id, ...userMeta });
 
+    if (userMeta.background_url) {
+      applyUserBackground(userMeta.background_url);
+    }
+
     // Apply custom CSS
     if (userMeta.custom_css) {
       const existing = document.getElementById("user-custom-style");
@@ -124,11 +129,13 @@ export async function renderUserPage(username) {
       root.style.backgroundPosition = "center";
     }
 
-    // If it's the user's own page, show post form
     if (getCurrentUser()?.id === userMeta.id) {
       document.getElementById("owner-controls").style.display = "block";
 
-      // ✅ Wait another frame before hooking post form logic
+      const header = document.querySelector("header");
+      const editBtn = createEditPageButton(userMeta.username);
+      header.appendChild(editBtn);
+
       await new Promise((r) => requestAnimationFrame(r));
       const { default: initMain } = await import("./main.js");
       initMain();

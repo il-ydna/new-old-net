@@ -1,3 +1,5 @@
+import { getCurrentUser } from "./state.js";
+
 // Show validation error below the post form
 export function showValidationMessage(message) {
   const errorDiv = document.createElement("div");
@@ -166,4 +168,65 @@ export function setupPostLayoutToggle() {
       options.style.display = "none";
     }
   });
+}
+
+export function createEditPageButton(username) {
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "Edit Page";
+  editBtn.style.marginLeft = "1rem";
+
+  editBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    history.pushState({}, "", `/@${username}/edit`);
+    window.dispatchEvent(new Event("popstate"));
+  });
+
+  return editBtn;
+}
+
+export function applyUserBackground(url) {
+  const root = document.documentElement;
+  if (!url) return;
+  root.style.backgroundImage = `url('${url}')`;
+  root.style.backgroundSize = "cover";
+  root.style.backgroundAttachment = "fixed";
+  root.style.backgroundRepeat = "no-repeat";
+  root.style.backgroundPosition = "center";
+}
+
+export function renderUserControls() {
+  const wrapper = document.createElement("div");
+  wrapper.id = "user-controls";
+
+  const user = getCurrentUser();
+
+  if (!user) {
+    wrapper.innerHTML = `<button id="signupBtn">Log In/Sign Up</button>`;
+    wrapper.querySelector("#signupBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      const returnTo = encodeURIComponent(window.location.pathname);
+      history.pushState({}, "", `/auth/signup?returnTo=${returnTo}`);
+      window.dispatchEvent(new Event("popstate"));
+    });
+    return wrapper;
+  }
+
+  wrapper.innerHTML = `
+    <div id="username">Signed in as ${user.username}</div>
+    <button id="logout">Log out</button>
+  `;
+
+  wrapper.querySelector("#logout").addEventListener("click", () => {
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+      UserPoolId: "us-east-2_lXvCqndHZ",
+      ClientId: "b2k3m380g08hmtmdn9osi12vg",
+    });
+    const cognitoUser = userPool.getCurrentUser();
+    if (cognitoUser) cognitoUser.signOut();
+    localStorage.removeItem("idToken");
+    history.pushState({}, "", `/`);
+    window.dispatchEvent(new Event("popstate"));
+  });
+
+  return wrapper;
 }

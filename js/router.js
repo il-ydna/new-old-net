@@ -2,19 +2,41 @@ import { renderUserPage } from "./user.js";
 import { renderLoginPage } from "./views/loginView.js";
 import { renderSignupPage } from "./views/signupView.js";
 import { renderConfirmPage } from "./views/confirmView.js";
+import { renderEditPage } from "./edit.js";
+import { renderUserControls } from "./ui.js";
 
 function parseRoute() {
   const path = window.location.pathname;
   console.log("Routing to", path); // debug
 
   if (path === "/" || path === "") {
-    document.getElementById("app").innerHTML = "<h1>Welcome</h1>";
+    document.getElementById("app").innerHTML = `
+    <header>
+      <div id="user-controls"></div>
+    </header>
+    <main>
+      <h1>Welcome</h1>
+    </main>
+  `;
+
+    const controlsEl = renderUserControls();
+    const placeholder = document.getElementById("user-controls");
+    if (placeholder) placeholder.replaceWith(controlsEl);
+
     return;
   }
 
   if (path.startsWith("/@")) {
-    const username = path.slice(2);
-    renderUserPage(username);
+    const [, rawUsername, subroute] = path.split("/");
+    const username = rawUsername.replace(/^@/, "");
+
+    console.log(username);
+    if (subroute === "edit") {
+      renderEditPage(username); // ✅ Handles /@username/edit
+      return;
+    }
+
+    renderUserPage(username); // Handles /@username
     return;
   }
 
