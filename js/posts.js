@@ -95,17 +95,19 @@ export function initPostForm() {
     removeValidationMessage();
 
     const editingId = getEditingPostId();
+    const postId = editingId || crypto.randomUUID();
+
     const titleInput = postForm.querySelector('input[name="title"]');
     const formData = new FormData(postForm);
-    const files = imageInput?.files || [];
 
     if (!titleInput?.value.trim()) {
       showValidationMessage("Give a title.");
       return;
     }
 
-    const postId = editingId || crypto.randomUUID();
+    const files = imageInput.files;
     const imageUrls = [];
+
     for (let i = 0; i < files.length; i++) {
       const url = await uploadImageToS3(files[i], postId, i);
       imageUrls.push(url);
@@ -116,7 +118,7 @@ export function initPostForm() {
     const pageOwnerId = getPageOwner()?.id || currentUserId;
 
     const newPost = {
-      id: editingId || postId,
+      id: postId,
       title: formData.get("title"),
       content: formData.get("content"),
       images: imageUrls,
@@ -157,7 +159,6 @@ export function initPostForm() {
         return;
       }
 
-      // Reset form
       setEditingPostId(null);
       postForm.reset();
       previewContainer.innerHTML = "";

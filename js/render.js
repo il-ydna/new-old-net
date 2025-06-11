@@ -1,6 +1,7 @@
 import { getIdToken } from "./auth.js";
 import { loadPosts } from "./posts.js";
 import { setEditingPostId, getCurrentUser } from "./state.js";
+import { showImagePreview } from "./upload.js";
 
 export function renderGrid(images) {
   return `
@@ -173,49 +174,85 @@ window.deletePost = async function (id) {
 };
 
 window.editPost = async function (id) {
-  const postEl = document.querySelector(`[data-id="${id}"]`);
-  if (!postEl) return;
-
+  setEditingPostId(id);
   const form = document.getElementById("postForm");
-  form.scrollIntoView({ behavior: "smooth" });
-
-  const response = await fetch(
-    "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
-  );
-  const posts = await response.json();
-  const post = posts.find((p) => p.id === id);
-  if (!post) return;
-
-  form.querySelector('input[name="title"]').value = post.title;
-  form.querySelector('textarea[name="content"]').value = post.content;
-  form.querySelector('input[name="tag"]').value = post.tag;
-
-  const layoutInput = document.getElementById("layoutInput");
-  const layoutSelected = document.querySelector(
-    "#layout-selector .selected-option"
-  );
-  layoutInput.value = post.layout || "grid";
-  layoutSelected.textContent =
-    (post.layout || "grid").charAt(0).toUpperCase() +
-    (post.layout || "grid").slice(1);
-
-  const layoutSelector = document.getElementById("layout-selector");
-  layoutSelector.style.display = post.images?.length >= 2 ? "block" : "none";
-
-  const previewContainer = document.getElementById("image-preview-container");
-  previewContainer.innerHTML = "";
-  if (layoutSelector) previewContainer.appendChild(layoutSelector);
-
-  (post.images || []).forEach((url) => {
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "Preview";
-    img.classList.add("preview-image");
-    previewContainer.appendChild(img);
-  });
+  if (!form) return;
 
   setEditingPostId(id);
-  form.classList.add("editing");
-  document.getElementById("cancelEditBtn").style.display = "inline-block";
-  document.getElementById("submitPostBtn").textContent = "Edit Post";
+  form.scrollIntoView({ behavior: "smooth" });
+
+  try {
+    const response = await fetch(
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?id=${encodeURIComponent(
+        id
+      )}`
+    );
+
+    if (!response.ok) {
+      alert("Failed to load post for editing.");
+      return;
+    }
+
+    const post = await response.json();
+    if (!post) return;
+
+    // Fill form fields with post data
+    form.querySelector('input[name="title"]').value = post.title || "";
+    form.querySelector('textarea[name="content"]').value = post.content || "";
+    form.querySelector('input[name="tag"]').value = post.tag || "";
+
+    // Set layout value and label from post
+    const layout = post.layout || "grid";
+    const layoutInput = document.getElementById("layoutInput");
+    const layoutSelected = document.querySelector(
+      "#layout-selector .selected-option"
+    );
+    if (layoutInput) layoutInput.value = layout;
+    if (layoutSelected) {
+      layoutSelected.textContent =
+        layout.charAt(0).toUpperCase() + layout.slice(1);
+    }
+
+    // Show/hide layout selector if needed
+    const layoutSelector = document.getElementById("layout-selector");
+    if (layoutSelector) {
+      layoutSelector.style.display =
+        Array.isArray(post.images) && post.images.length >= 2
+          ? "block"
+          : "none";
+    }
+
+    // Render image previews from post.images
+    const previewContainer = document.getElementById("image-preview-container");
+    if (previewContainer) {
+      previewContainer.innerHTML = "";
+      if (layoutSelector) previewContainer.appendChild(layoutSelector);
+
+      const layout = post.layout || "grid";
+      let html = "";
+      switch (layout) {
+        case "carousel":
+          html = renderCarousel(post.images);
+          break;
+        case "stack":
+          html = renderStack(post.images);
+          break;
+        default:
+          html = renderGrid(post.images);
+      }
+
+      previewContainer.innerHTML = html;
+      if (layoutSelector) {
+        previewContainer.appendChild(layoutSelector);
+      }
+    }
+
+    // Mark form as editing
+    form.classList.add("editing");
+    document.getElementById("cancelEditBtn").style.display = "inline-block";
+    document.getElementById("submitPostBtn").textContent = "Edit Post";
+  } catch (err) {
+    console.error("editPost error:", err);
+    alert("Something went wrong loading the post.");
+  }
 };

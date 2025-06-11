@@ -1,8 +1,14 @@
 import { renderPosts } from "./render.js";
-import { setupPostLayoutToggle, createEditPageButton } from "./ui.js";
-import { updateHeader, loadPosts } from "./posts.js";
+import {
+  setupPostLayoutToggle,
+  createEditPageButton,
+  setupTagDropdown,
+  renderTagDropdown,
+} from "./ui.js";
+import { updateHeader } from "./posts.js";
 import { getCurrentUser, setPageOwner } from "./state.js";
 import { applyUserBackground } from "./ui.js";
+import { setupImageUploader } from "./upload.js";
 
 export function renderPostFormHTML() {
   return `
@@ -23,29 +29,8 @@ export function renderPostFormHTML() {
               hidden
             />
           </div>
-          <div id="tag-dropdown-wrapper">
-            <div class="custom-dropdown" id="tagDropdown">
-              <div class="selected-option button-style">Select a tag</div>
-              <div class="dropdown-options">
-                <div class="dropdown-option" data-value="general" data-color="#dcd2ca">
-                  <span class="dot" style="background: #97938e"></span> General
-                </div>
-                <div class="dropdown-option" data-value="project" data-color="#7f8181">
-                  <span class="dot" style="background: #6a747c"></span> Project
-                </div>
-                <div class="dropdown-option" data-value="photo" data-color="#5e6870">
-                  <span class="dot" style="background: #5e6870"></span> Photo
-                </div>
-                <div class="dropdown-option" data-value="book" data-color="#506c7f">
-                  <span class="dot" style="background: #3d5161"></span> Reading
-                </div>
-                <div class="dropdown-option" data-value="guest" data-color="#293e51">
-                  <span class="dot" style="background: #293e51"></span> Guest
-                </div>
-              </div>
-              <input type="hidden" name="tag" id="tagInput" required />
-            </div>
-          </div>
+          <div id="tag-dropdown-wrapper"></div>
+
 
           <button type="submit" id="submitPostBtn">Add Post</button>
         </div>
@@ -69,18 +54,12 @@ export function renderPostFormHTML() {
 }
 
 export async function renderUserPage(username) {
+  document.body.classList.remove("edit-mode");
   const app = document.getElementById("app");
 
   // Inject full shell + post form
   app.innerHTML = `
     <header>
-      <div class="custom-dropdown button-style" id="post-layout-selector">
-        <div class="selected-option">Timeline</div>
-        <div class="dropdown-options">
-          <div class="dropdown-option" data-value="columns">Columns</div>
-          <div class="dropdown-option" data-value="stack">Timeline</div>
-        </div>
-      </div>
       <div id="user-controls"></div>
     </header>
     ${renderPostFormHTML()}
@@ -127,6 +106,13 @@ export async function renderUserPage(username) {
       root.style.backgroundAttachment = "fixed";
       root.style.backgroundRepeat = "no-repeat";
       root.style.backgroundPosition = "center";
+    }
+
+    const tagWrapper = document.getElementById("tag-dropdown-wrapper");
+    if (tagWrapper && Array.isArray(userMeta.tags)) {
+      const dropdown = renderTagDropdown(userMeta.tags);
+      tagWrapper.appendChild(dropdown);
+      setupTagDropdown();
     }
 
     if (getCurrentUser()?.id === userMeta.id) {

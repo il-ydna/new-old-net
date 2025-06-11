@@ -29,10 +29,10 @@ export function setupTagDropdown() {
   const hiddenInput = document.getElementById("tagInput");
   if (!selected || !options || !hiddenInput) return;
 
-  selected.addEventListener("click", () => {
+  selected.onclick = () => {
     options.style.display =
       options.style.display === "block" ? "none" : "block";
-  });
+  };
 
   dropdown.querySelectorAll(".dropdown-option").forEach((option) => {
     option.addEventListener("click", () => {
@@ -226,7 +226,48 @@ export function renderUserControls() {
     localStorage.removeItem("idToken");
     history.pushState({}, "", `/`);
     window.dispatchEvent(new Event("popstate"));
+    setTimeout(() => location.reload(), 50);
   });
 
+  return wrapper;
+}
+export function renderTagDropdown(tags) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "custom-dropdown";
+  wrapper.id = "tagDropdown";
+
+  const selected = document.createElement("div");
+  selected.className = "selected-option button-style";
+  selected.textContent = "Select a tag";
+
+  const options = document.createElement("div");
+  options.className = "dropdown-options";
+
+  tags.forEach((tag) => {
+    const option = document.createElement("div");
+    option.className = "dropdown-option";
+    option.setAttribute("data-value", tag.value);
+    option.setAttribute("data-color", tag.color);
+    option.setAttribute("data-text", tag.textColor || "#ffffff");
+
+    option.innerHTML = `
+      <span class="dot" style="background: ${
+        tag.color
+      }; border-radius: 50%; width: 0.75rem; height: 0.75rem;"></span>
+      <span style="color: ${tag.textColor || "#fff"}">${tag.name}</span>
+    `;
+
+    options.appendChild(option);
+  });
+
+  const hidden = document.createElement("input");
+  hidden.type = "hidden";
+  hidden.name = "tag";
+  hidden.id = "tagInput";
+  hidden.required = true;
+
+  wrapper.appendChild(selected);
+  wrapper.appendChild(options);
+  wrapper.appendChild(hidden);
   return wrapper;
 }

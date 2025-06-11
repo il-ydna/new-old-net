@@ -1,6 +1,8 @@
 import initConfirmForm from "../../auth/confirm.js";
 
 export function renderConfirmPage() {
+  document.body.classList.remove("edit-mode");
+
   document.getElementById("app").innerHTML = `
     <h2>Confirm Account</h2>
     <form id="confirmForm">

@@ -1,6 +1,8 @@
 import initSignupForm from "../../auth/signup.js";
 
 export function renderSignupPage() {
+  document.body.classList.remove("edit-mode");
+
   document.getElementById("app").innerHTML = `
     <h2>Sign Up</h2>
     <form id="signupForm">

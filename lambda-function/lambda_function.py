@@ -73,6 +73,8 @@ def lambda_handler(event, context):
     if path == "/":
         if method == "OPTIONS":
             return handle_options(event)
+        if method == "GET" and "id" in qs:
+            return handle_get_post_by_id(event)
         if method == "GET" and "presign" in qs:
             return handle_presign(event)
         if method == "GET":
@@ -110,6 +112,22 @@ def handle_get(event):
         return cors_response(200, items)
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+    
+def handle_get_post_by_id(event):
+    try:
+        post_id = event.get("queryStringParameters", {}).get("id")
+        if not post_id:
+            return cors_response(400, {"error": "Missing post ID"})
+
+        response = posts_table.get_item(Key={"id": post_id})
+        item = response.get("Item")
+        if not item:
+            return cors_response(404, {"error": "Post not found"})
+
+        return cors_response(200, decimal_to_native(item))
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
 
 def handle_presign(event):
     try:
@@ -231,7 +249,16 @@ def handle_put(event):
             "images": new_images if new_images else existing_images
         })
 
-        posts_table.put_item(Item=updated_data)
+        update_expression = "SET " + ", ".join(f"#{k} = :{k}" for k in updated_data if k != "id")
+        expression_attr_names = {f"#{k}": k for k in updated_data if k != "id"}
+        expression_attr_values = {f":{k}": v for k, v in updated_data.items() if k != "id"}
+
+        posts_table.update_item(
+            Key={"id": post_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeNames=expression_attr_names,
+            ExpressionAttributeValues=expression_attr_values
+        )
         return cors_response(200, {"message": "Post updated"})
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
@@ -249,7 +276,8 @@ def handle_user_meta_post(event):
             "username": username,
             "custom_css": body.get("custom_css", ""),
             "default_layout": body.get("default_layout", "columns"),
-            "background_url": body.get("background_url", "")
+            "background_url": body.get("background_url", ""),
+            "tags": body.get("tags", [])
         }
         users_table.put_item(Item=item)
         return cors_response(200, {"message": "User profile created"})
@@ -288,7 +316,7 @@ def handle_user_meta_put(event):
         claims = get_user_claims(event)
         user_id = claims.get("sub")
         body = json.loads(event.get("body", "{}"))
-        allowed_fields = ["custom_css", "default_layout", "background_url"]
+        allowed_fields = ["custom_css", "default_layout", "background_url", "tags"]
 
         update = {k: v for k, v in body.items() if k in allowed_fields}
         update["id"] = user_id

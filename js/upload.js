@@ -7,7 +7,47 @@ const layoutSelector = document.getElementById("layout-selector");
 const previewContainer = document.getElementById("image-preview-container");
 const imageLabel = document.querySelector("#image-drop-zone label");
 
+async function compressImage(file, quality = 0.7, maxWidth = 1280) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = () => {
+      const img = new Image();
+      img.src = reader.result;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            } else {
+              reject(new Error("Compression failed"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      img.onerror = () => reject(new Error("Image load failed"));
+    };
+
+    reader.onerror = reject;
+  });
+}
+
 export async function uploadImageToS3(file, postId, index) {
+  const compressedFile = await compressImage(file);
+
   const presignRes = await fetch(
     `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?presign&post_id=${postId}&index=${index}`,
     {
@@ -19,8 +59,11 @@ export async function uploadImageToS3(file, postId, index) {
 
   await fetch(upload_url, {
     method: "PUT",
-    headers: { "Content-Type": "image/jpeg", "x-amz-acl": "public-read" },
-    body: file,
+    headers: {
+      "Content-Type": "image/jpeg",
+      "x-amz-acl": "public-read",
+    },
+    body: compressedFile,
   });
 
   return public_url;
@@ -31,7 +74,7 @@ export function setupImageUploader() {
   const imageInput = document.getElementById("imageInput");
   const imageLabel = document.querySelector("#image-drop-zone label");
 
-  if (!dropZone || !imageInput || !imageLabel) return; // graceful fail
+  if (!dropZone || !imageInput || !imageLabel) return;
 
   dropZone.addEventListener("click", (e) => {
     if (e.target.tagName !== "LABEL") imageInput.click();
@@ -51,9 +94,10 @@ export function setupImageUploader() {
     dropZone.classList.remove("dragover");
 
     if (e.dataTransfer.files.length > 0) {
-      imageInput.files = e.dataTransfer.files;
-      updateLabel(e.dataTransfer.files[0].name, imageLabel);
-      showImagePreview(e.dataTransfer.files);
+      const files = e.dataTransfer.files;
+      updateLabel(files[0].name, imageLabel);
+      showImagePreview(files);
+      // Do not manually assign to imageInput.files
     }
   });
 
@@ -63,6 +107,10 @@ export function setupImageUploader() {
       showImagePreview(imageInput.files);
     } else {
       imageLabel.textContent = "Choose Image";
+      const previewContainer = document.getElementById(
+        "image-preview-container"
+      );
+      if (previewContainer) previewContainer.innerHTML = "";
     }
   });
 
@@ -77,42 +125,47 @@ function updateLabel(fileName, labelEl) {
     fileName.length > maxLen ? fileName.slice(0, maxLen) + "…" : fileName;
   labelEl.innerHTML = `<span style="text-decoration: underline;">${truncated}</span>`;
 }
-webkitURL;
-function showImagePreview(files) {
+export async function showImagePreview(files) {
   const layoutSelector = document.getElementById("layout-selector");
   const layoutInput = document.getElementById("layoutInput");
   const previewContainer = document.getElementById("image-preview-container");
 
-  if (!layoutInput || !previewContainer) return;
+  if (!layoutInput || !previewContainer || !files || files.length === 0) {
+    previewContainer.innerHTML = "";
+    if (layoutSelector && layoutSelector.style) {
+      layoutSelector.style.display = "none";
+    }
+    return;
+  }
 
   const layout = layoutInput.value || "grid";
-  const readAll = Array.from(files).map(
-    (file) =>
-      new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      })
+  const urls = await Promise.all(
+    Array.from(files).map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        })
+    )
   );
 
-  Promise.all(readAll).then((urls) => {
-    let html = "";
-    switch (layout) {
-      case "carousel":
-        html = renderCarousel(urls);
-        break;
-      case "stack":
-        html = renderStack(urls);
-        break;
-      default:
-        html = renderGrid(urls);
-    }
+  let html = "";
+  switch (layout) {
+    case "carousel":
+      html = renderCarousel(urls);
+      break;
+    case "stack":
+      html = renderStack(urls);
+      break;
+    default:
+      html = renderGrid(urls);
+  }
 
-    previewContainer.innerHTML = html;
+  previewContainer.innerHTML = html;
 
-    if (layoutSelector) {
-      previewContainer.appendChild(layoutSelector);
-      layoutSelector.style.display = urls.length >= 2 ? "block" : "none";
-    }
-  });
+  if (layoutSelector) {
+    previewContainer.appendChild(layoutSelector);
+    layoutSelector.style.display = urls.length >= 2 ? "block" : "none";
+  }
 }

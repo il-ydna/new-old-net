@@ -1,6 +1,8 @@
 import initLoginForm from "../../auth/login.js";
 
 export function renderLoginPage() {
+  document.body.classList.remove("edit-mode");
+
   document.getElementById("app").innerHTML = `
     <h2>Log In</h2>
     <form id="loginForm">
