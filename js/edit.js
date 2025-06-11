@@ -238,8 +238,6 @@ function initForm(userMeta) {
 
     updateStyles();
     customTagsContainer.appendChild(row);
-    // Add pulse class
-    preview.classList.add("pulse");
 
     // Remove it after animation completes
     preview.addEventListener(
