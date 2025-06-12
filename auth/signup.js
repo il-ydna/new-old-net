@@ -4,6 +4,14 @@ const poolData = {
 };
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
+function showErrorMessage(message) {
+  const errorDiv = document.getElementById("errorMessage");
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = "block";
+  }
+}
+
 export default function initSignupForm() {
   const form = document.getElementById("signupForm");
   if (!form) return;
@@ -14,9 +22,44 @@ export default function initSignupForm() {
     const username = form.username.value.trim();
     const email = form.email.value.trim();
     const password = form.password.value.trim();
+    const confirmPassword = form.confirmPassword.value.trim();
 
-    if (!username || !email || !password) {
-      alert("Please fill in all fields");
+    // Comprehensive input validation
+    if (!username) {
+      showErrorMessage("Username is required");
+      return;
+    }
+
+    if (!email) {
+      showErrorMessage("Email is required");
+      return;
+    }
+
+    // Robust email validation regex
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!emailRegex.test(email)) {
+      showErrorMessage("Please enter a valid email address");
+      return;
+    }
+
+    if (!password) {
+      showErrorMessage("Password is required");
+      return;
+    }
+
+    if (password.length < 8) {
+      showErrorMessage("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (!confirmPassword) {
+      showErrorMessage("Please confirm your password");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showErrorMessage("Passwords do not match");
       return;
     }
 
@@ -29,13 +72,9 @@ export default function initSignupForm() {
 
     userPool.signUp(username, password, attributeList, null, (err, result) => {
       if (err) {
-        alert(err.message || JSON.stringify(err));
+        showErrorMessage(err.message || JSON.stringify(err));
         return;
       }
-
-      alert(
-        "Sign up successful! Please check your email for the confirmation code."
-      );
 
       const returnTo =
         new URLSearchParams(window.location.search).get("returnTo") || "/";

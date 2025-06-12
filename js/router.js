@@ -4,20 +4,14 @@ import { renderSignupPage } from "./views/signupView.js";
 import { renderConfirmPage } from "./views/confirmView.js";
 import { renderEditPage } from "./edit.js";
 import { renderUserControls } from "./ui.js";
+import { renderHomePage } from "./views/homeView.js";
 
 function parseRoute() {
   const path = window.location.pathname;
   console.log("Routing to", path); // debug
 
   if (path === "/" || path === "") {
-    document.getElementById("app").innerHTML = `
-    <header>
-      <div id="user-controls"></div>
-    </header>
-    <main>
-      <h1>Welcome</h1>
-    </main>
-  `;
+    renderHomePage();
 
     const controlsEl = renderUserControls();
     const placeholder = document.getElementById("user-controls");

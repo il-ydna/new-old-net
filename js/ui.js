@@ -36,9 +36,17 @@ export function setupTagDropdown() {
 
   dropdown.querySelectorAll(".dropdown-option").forEach((option) => {
     option.addEventListener("click", () => {
-      const label = option.innerHTML;
+      const label =
+        option.querySelector("span:last-child")?.textContent || "Unknown";
       const value = option.getAttribute("data-value");
-      selected.innerHTML = label;
+      const color = option.getAttribute("data-color");
+      const textColor = option.getAttribute("data-text") || "#ffffff";
+
+      selected.innerHTML = `<span>${label}</span>`;
+      selected.className = "selected-option button-style tag-pill-large";
+      selected.style.backgroundColor = color;
+      selected.style.color = textColor;
+
       hiddenInput.value = value;
       options.style.display = "none";
     });
@@ -250,12 +258,19 @@ export function renderTagDropdown(tags) {
     option.setAttribute("data-color", tag.color);
     option.setAttribute("data-text", tag.textColor || "#ffffff");
 
-    option.innerHTML = `
-      <span class="dot" style="background: ${
-        tag.color
-      }; border-radius: 50%; width: 0.75rem; height: 0.75rem;"></span>
-      <span style="color: ${tag.textColor || "#fff"}">${tag.name}</span>
-    `;
+    option.style.display = "inline-flex";
+    option.style.alignItems = "center";
+    option.style.gap = "0.5rem";
+    option.style.padding = "0.25rem 0.75rem";
+    option.style.borderRadius = "999px";
+    option.style.backgroundColor = tag.color;
+    option.style.color = tag.textColor || "#ffffff";
+    option.style.fontSize = "0.75rem";
+    option.style.whiteSpace = "nowrap";
+    option.style.margin = "0.25rem";
+    option.style.cursor = "pointer";
+
+    option.innerHTML = `<span>${tag.name}</span>`;
 
     options.appendChild(option);
   });

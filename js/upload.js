@@ -1,13 +1,7 @@
 import { getIdToken } from "./auth.js";
 import { renderGrid, renderStack, renderCarousel } from "./render.js";
 
-const imageInput = document.getElementById("imageInput");
-const layoutInput = document.getElementById("layoutInput");
-const layoutSelector = document.getElementById("layout-selector");
-const previewContainer = document.getElementById("image-preview-container");
-const imageLabel = document.querySelector("#image-drop-zone label");
-
-async function compressImage(file, quality = 0.7, maxWidth = 1280) {
+export async function compressImage(file, quality = 0.7, maxWidth = 1280) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -69,7 +63,12 @@ export async function uploadImageToS3(file, postId, index) {
   return public_url;
 }
 
+let uploaderInitialized = false;
+
 export function setupImageUploader() {
+  if (uploaderInitialized) return;
+  uploaderInitialized = true;
+
   const dropZone = document.getElementById("image-drop-zone");
   const imageInput = document.getElementById("imageInput");
   const imageLabel = document.querySelector("#image-drop-zone label");
@@ -77,7 +76,10 @@ export function setupImageUploader() {
   if (!dropZone || !imageInput || !imageLabel) return;
 
   dropZone.addEventListener("click", (e) => {
-    if (e.target.tagName !== "LABEL") imageInput.click();
+    // Only trigger if clicking the drop zone itself, not the label or input
+    if (e.target === dropZone) {
+      imageInput.click();
+    }
   });
 
   dropZone.addEventListener("dragover", (e) => {
@@ -92,12 +94,10 @@ export function setupImageUploader() {
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropZone.classList.remove("dragover");
-
     if (e.dataTransfer.files.length > 0) {
       const files = e.dataTransfer.files;
       updateLabel(files[0].name, imageLabel);
       showImagePreview(files);
-      // Do not manually assign to imageInput.files
     }
   });
 
@@ -132,22 +132,19 @@ export async function showImagePreview(files) {
 
   if (!layoutInput || !previewContainer || !files || files.length === 0) {
     previewContainer.innerHTML = "";
-    if (layoutSelector && layoutSelector.style) {
-      layoutSelector.style.display = "none";
-    }
+    if (layoutSelector) layoutSelector.style.display = "none";
     return;
   }
 
   const layout = layoutInput.value || "grid";
   const urls = await Promise.all(
-    Array.from(files).map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        })
-    )
+    Array.from(files).map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    })
   );
 
   let html = "";
@@ -162,10 +159,13 @@ export async function showImagePreview(files) {
       html = renderGrid(urls);
   }
 
-  previewContainer.innerHTML = html;
+  // Clear only the preview images, not the layout selector
+  [...previewContainer.childNodes].forEach((node) => {
+    if (node !== layoutSelector) node.remove();
+  });
+  previewContainer.insertAdjacentHTML("afterbegin", html);
 
   if (layoutSelector) {
-    previewContainer.appendChild(layoutSelector);
     layoutSelector.style.display = urls.length >= 2 ? "block" : "none";
   }
 }

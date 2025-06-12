@@ -9,6 +9,7 @@ import base64
 from botocore.exceptions import ClientError
 from botocore.config import Config
 from urllib.parse import urlparse
+import time
 
 # Setup
 s3 = boto3.client(
@@ -263,7 +264,6 @@ def handle_put(event):
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
-# User profile handlers
 def handle_user_meta_post(event):
     try:
         claims = get_user_claims(event)
@@ -271,18 +271,23 @@ def handle_user_meta_post(event):
         username = claims.get("cognito:username")
 
         body = json.loads(event.get("body", "{}"))
+
         item = {
             "id": user_id,
             "username": username,
             "custom_css": body.get("custom_css", ""),
             "default_layout": body.get("default_layout", "columns"),
             "background_url": body.get("background_url", ""),
-            "tags": body.get("tags", [])
+            "tags": body.get("tags", []),
+            "default_tag": body.get("default_post_tag", "general"),
+            "created_at": body.get("created_at") or int(time.time() * 1000)  # fallback if frontend omits it
         }
+
         users_table.put_item(Item=item)
         return cors_response(200, {"message": "User profile created"})
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
 
 def handle_user_meta_get(event):
     try:
@@ -316,7 +321,7 @@ def handle_user_meta_put(event):
         claims = get_user_claims(event)
         user_id = claims.get("sub")
         body = json.loads(event.get("body", "{}"))
-        allowed_fields = ["custom_css", "default_layout", "background_url", "tags"]
+        allowed_fields = ["custom_css", "default_layout", "background_url", "tags", "default_tag"]
 
         update = {k: v for k, v in body.items() if k in allowed_fields}
         update["id"] = user_id

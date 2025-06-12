@@ -105,6 +105,12 @@ export function initPostForm() {
       return;
     }
 
+    const tagValue = formData.get("tag");
+    if (!tagValue) {
+      showValidationMessage("Select a tag.");
+      return;
+    }
+
     const files = imageInput.files;
     const imageUrls = [];
 

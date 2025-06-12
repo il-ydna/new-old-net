@@ -121,7 +121,7 @@
 
 html.edit-mode,
 body.edit-mode {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.5);
   min-height: 100%;
   height: auto;
   background-attachment: fixed;
@@ -148,6 +148,7 @@ body.edit-mode {
 }
 body.edit-mode h3 {
   font-size: 1.5rem;
+  text-align: center;
 }
 
 .add-tag-button {
@@ -169,4 +170,29 @@ input.tag-name {
   flex: 1;
   align-self: center;
   margin-bottom: 0;
+}
+
+/* Glow on hover */
+.tag-row:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+/* Highlight selected tag row */
+.tag-row.selected {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.editor-section {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(6px);
+}
+
+.palette-picker {
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 1rem;
+  border-radius: 1rem;
 }

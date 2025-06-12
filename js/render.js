@@ -1,7 +1,6 @@
 import { getIdToken } from "./auth.js";
 import { loadPosts } from "./posts.js";
 import { setEditingPostId, getCurrentUser } from "./state.js";
-import { showImagePreview } from "./upload.js";
 
 export function renderGrid(images) {
   return `
