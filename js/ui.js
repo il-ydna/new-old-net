@@ -246,7 +246,7 @@ export function renderTagDropdown(tags) {
 
   const selected = document.createElement("div");
   selected.className = "selected-option button-style";
-  selected.textContent = "Select a tag";
+  selected.textContent = "Pick a tag";
 
   const options = document.createElement("div");
   options.className = "dropdown-options";
