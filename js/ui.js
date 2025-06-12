@@ -180,7 +180,7 @@ export function setupPostLayoutToggle() {
 
 export function createEditPageButton(username) {
   const editBtn = document.createElement("button");
-  editBtn.textContent = "Edit Page";
+  editBtn.textContent = "Edit";
   editBtn.style.marginLeft = "1rem";
 
   editBtn.addEventListener("click", (e) => {

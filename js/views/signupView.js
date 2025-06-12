@@ -1,36 +1,48 @@
-import initSignupForm from "../../auth/signup.js";
+import initSignupForm from "../auth/signup.js";
 
 export function renderSignupPage() {
   document.body.classList.remove("edit-mode");
 
   document.getElementById("app").innerHTML = `
-    <h2>Sign Up</h2>
-    <form id="signupForm">
-      <input type="text" name="username" placeholder="Username" />
-      <input type="text" name="email" placeholder="Email" />
-      <input type="password" name="password" placeholder="Password" id="passwordInput" />
-      <input type="password" name="confirmPassword" placeholder="Confirm Password" />
-      
-      <div style="font-size: 1rem; color: #white; margin: 10px 0;">
-        <strong>Password requirements</strong><br>
-        <div id="req-number" style="margin: 2px 0;">
-          <span class="check">☐</span> Contains at least 1 number
+    <div style="padding: 1rem">
+      <h2>Sign Up</h2>
+      <form id="signupForm">
+        <input type="text" name="username" placeholder="Username" />
+        <input type="text" name="email" placeholder="Email" />
+        <input type="password" name="password" placeholder="Password" id="passwordInput" />
+        <input type="password" name="confirmPassword" placeholder="Confirm Password" />
+        
+        <div style="display: flex; justify-content: center; margin-top: 2rem;">
+          <div style="font-size: 1rem; color: white; margin: 10px 0; text-align: left;">
+            <strong>Password requirements</strong><br>
+            <div id="req-number" style="margin: 2px 0;">
+              <span class="check">☐</span> Contains at least 1 number
+            </div>
+            <div id="req-special" style="margin: 2px 0;">
+              <span class="check">☐</span> Contains at least 1 special character
+            </div>
+            <div id="req-uppercase" style="margin: 2px 0;">
+              <span class="check">☐</span> Contains at least 1 uppercase letter
+            </div>
+            <div id="req-lowercase" style="margin: 2px 0;">
+              <span class="check">☐</span> Contains at least 1 lowercase letter
+            </div>
+          </div>
+          
         </div>
-        <div id="req-special" style="margin: 2px 0;">
-          <span class="check">☐</span> Contains at least 1 special character
+        <div style="display: flex; justify-content: center; margin-top: 2rem;">
+          <button type="submit">Sign Up</button>
         </div>
-        <div id="req-uppercase" style="margin: 2px 0;">
-          <span class="check">☐</span> Contains at least 1 uppercase letter
+        <div style="text-align: center; margin-top: 1rem;">
+          <div id="errorMessage" style="color: salmon; display: none; margin: 10px 0;"></div>
         </div>
-        <div id="req-lowercase" style="margin: 2px 0;">
-          <span class="check">☐</span> Contains at least 1 lowercase letter
-        </div>
+        
+        
+      </form>
+      <div style="text-align: center; margin-top: 1rem;">
+        <button href="/auth/login" id="goLogin">Already have an account?</button>
       </div>
-      
-      <div id="errorMessage" style="color: salmon; display: none; margin: 10px 0;"></div>
-      <button type="submit">Sign Up</button>
-    </form>
-    <p><a href="/auth/login" id="goLogin">Already have an account?</a></p>
+    </div>
   `;
 
   initSignupForm();

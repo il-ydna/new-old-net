@@ -1,4 +1,4 @@
-import initConfirmForm from "../../auth/confirm.js";
+import initConfirmForm from "../auth/confirm.js";
 
 export function renderConfirmPage() {
   document.body.classList.remove("edit-mode");

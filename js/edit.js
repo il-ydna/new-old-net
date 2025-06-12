@@ -549,6 +549,7 @@ function renderColorSuggestions(colors) {
     swatch.style.height = "1.25rem";
     swatch.style.borderRadius = "50%";
     swatch.style.cursor = "pointer";
+    swatch.style.border = "2px solid white";
     swatch.title = hex;
 
     swatch.addEventListener("click", () => {

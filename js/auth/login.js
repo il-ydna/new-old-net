@@ -140,6 +140,16 @@ html {
   background-color: rgba(0, 0, 0, 0.8);
 }
 
+/* Section stylings */
+section {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(6px);
+}
+
+
 /* Image presentation */
 img {
   max-width: 100%;

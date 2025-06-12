@@ -10,44 +10,46 @@ import { getCurrentUser, setPageOwner, getPageOwner } from "./state.js";
 import { applyUserBackground } from "./ui.js";
 export function renderPostFormHTML() {
   return `
-      <div id="owner-controls" style="display: none">
-        <form id="postForm">
-          <input type="text" name="title" placeholder="Post Title" />
-          <textarea name="content" placeholder="Write something..." rows="5"></textarea>
+      <section>
+        <div id="owner-controls" style="display: none">
+          <form id="postForm">
+            <input type="text" name="title" placeholder="Post Title" />
+            <textarea name="content" placeholder="Write something..." rows="5"></textarea>
 
-          <div class="button-row">
-            <div id="image-drop-zone" class="img-uploader" tabindex="0">
-              <label for="imageInput">Choose/Drop Image</label>
-              <input
-                type="file"
-                id="imageInput"
-                name="image"
-                accept="image/*"
-                multiple
-                hidden
-              />
-            </div>
-            <div id="tag-dropdown-wrapper"></div>
-
-
-            <button type="submit" id="submitPostBtn">Add Post</button>
-          </div>
-
-          <div id="image-preview-container" class="image-preview-container">
-            <div id="layout-selector" class="layout-dropdown" style="display: none;">
-              <div class="selected-option">Grid</div>
-              <div class="dropdown-options">
-                <div class="dropdown-option" data-value="grid">Grid</div>
-                <div class="dropdown-option" data-value="carousel">Carousel</div>
-                <div class="dropdown-option" data-value="stack">Stack</div>
+            <div class="button-row">
+              <div id="image-drop-zone" class="img-uploader" tabindex="0">
+                <label for="imageInput">Choose/Drop Image</label>
+                <input
+                  type="file"
+                  id="imageInput"
+                  name="image"
+                  accept="image/*"
+                  multiple
+                  hidden
+                />
               </div>
-              <input type="hidden" name="layout" id="layoutInput" value="grid" />
-            </div>
-          </div>
+              <div id="tag-dropdown-wrapper"></div>
 
-          <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
-        </form>
-      </div>
+
+              <button type="submit" id="submitPostBtn">Post</button>
+            </div>
+
+            <div id="image-preview-container" class="image-preview-container">
+              <div id="layout-selector" class="layout-dropdown" style="display: none;">
+                <div class="selected-option">Grid</div>
+                <div class="dropdown-options">
+                  <div class="dropdown-option" data-value="grid">Grid</div>
+                  <div class="dropdown-option" data-value="carousel">Carousel</div>
+                  <div class="dropdown-option" data-value="stack">Stack</div>
+                </div>
+                <input type="hidden" name="layout" id="layoutInput" value="grid" />
+              </div>
+            </div>
+
+            <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
+          </form>
+        </div>
+      </section>
     `;
 }
 
@@ -183,29 +185,48 @@ export async function renderUserPage(username) {
       clearBtn.addEventListener("click", () => renderPosts(userPosts));
       tagButtonContainer.appendChild(clearBtn);
 
+      let selectedTagBtn = null;
+
       userMeta.tags.forEach((tag) => {
         const btn = document.createElement("button");
         btn.className = "button-style";
-        btn.innerHTML = `
-          <span style="
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-          ">
-            <span class="dot" style="
-              background: ${tag.color};
-              width: 0.75rem;
-              height: 0.75rem;
-              border-radius: 50%;
-              display: inline-block;
-            "></span>
-            ${tag.name}
-          </span>
-        `;
+        btn.dataset.tag = tag.value;
+
+        const label = document.createElement("span");
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.gap = "0.5rem";
+
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.style.background = tag.color;
+        dot.style.width = "0.75rem";
+        dot.style.height = "0.75rem";
+        dot.style.borderRadius = "50%";
+        dot.style.display = "inline-block";
+
+        const text = document.createTextNode(tag.name);
+        label.appendChild(dot);
+        label.appendChild(text);
+        btn.appendChild(label);
 
         btn.addEventListener("click", () => {
           const filtered = userPosts.filter((p) => p.tag === tag.value);
           renderPosts(filtered);
+
+          // Reset previously selected
+          if (selectedTagBtn) {
+            selectedTagBtn.style.backgroundColor = "transparent";
+            selectedTagBtn.style.color = "white";
+            const oldDot = selectedTagBtn.querySelector(".dot");
+            if (oldDot) oldDot.style.display = "inline-block";
+          }
+
+          // Highlight current button
+          btn.style.backgroundColor = tag.color;
+          btn.style.color = tag.textColor || "white";
+          dot.style.display = "none";
+          selectedTagBtn = btn;
         });
 
         tagButtonContainer.appendChild(btn);
