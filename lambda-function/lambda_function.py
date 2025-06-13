@@ -275,7 +275,8 @@ def handle_user_meta_post(event):
         item = {
             "id": user_id,
             "username": username,
-            "custom_css": body.get("custom_css", ""),
+            "post_css": body.get("post_css", ""),
+            "layout_css": body.get("layout_css", ""),
             "default_layout": body.get("default_layout", "columns"),
             "background_url": body.get("background_url", ""),
             "tags": body.get("tags", []),
@@ -322,7 +323,7 @@ def handle_user_meta_put(event):
         user_id = claims.get("sub")
         body = json.loads(event.get("body", "{}"))
 
-        allowed_fields = ["custom_css", "default_layout", "background_url", "tags", "default_tag"]
+        allowed_fields = ["post_css", "layout_css", "default_layout", "background_url", "tags", "default_tag"]
         update_fields = {k: v for k, v in body.items() if k in allowed_fields}
 
         if not update_fields:

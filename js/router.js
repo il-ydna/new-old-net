@@ -5,9 +5,9 @@ import { renderConfirmPage } from "./views/confirmView.js";
 import { renderEditPage } from "./edit.js";
 import { renderUserControls } from "./ui.js";
 import { renderHomePage } from "./views/homeView.js";
-import { renderStyleStep } from "./views/styleView.js";
-import { renderBackgroundStep } from "./views/backgroundView.js";
-import { renderLayoutStep } from "./views/layoutView.js";
+
+import { setPageOwner } from "./state.js";
+import { getUserMetaByUsername } from "./user.js"; // or wherever it's defined
 
 function parseRoute() {
   const path = window.location.pathname;
@@ -24,12 +24,16 @@ function parseRoute() {
   }
 
   if (path.startsWith("/@")) {
-    const [, rawUsername, subroute] = path.split("/");
+    const [, rawUsername, edit, tab] = path.split("/");
     const username = rawUsername.replace(/^@/, "");
 
-    console.log(username);
-    if (subroute === "edit") {
-      renderEditPage(username); // ✅ Handles /@username/edit
+    if (edit === "edit") {
+      getUserMetaByUsername(username).then((meta) => {
+        if (meta?.id) {
+          setPageOwner({ id: meta.id, username });
+        }
+        renderEditPage(username, tab || "page");
+      });
       return;
     }
 
@@ -49,19 +53,6 @@ function parseRoute() {
 
   if (path === "/auth/confirm") {
     renderConfirmPage();
-    return;
-  }
-
-  if (path === "/onboarding/style") {
-    renderStyleStep();
-    return;
-  }
-  if (path === "/onboarding/background") {
-    renderBackgroundStep();
-    return;
-  }
-  if (path === "/onboarding/layout") {
-    renderLayoutStep();
     return;
   }
 

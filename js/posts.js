@@ -13,6 +13,7 @@ import {
   getCurrentUser,
   getPageOwner,
 } from "./state.js";
+import { applyCombinedCSS } from "./ui.js"; // or wherever it's defined
 
 import { renderUserControls } from "./ui.js";
 
@@ -49,7 +50,7 @@ export async function loadPosts() {
   const postForm = document.getElementById("postForm");
   const idToken = await getIdToken();
   const currentUser = getCurrentUser();
-  const pageOwner = getPageOwner(); // 🆕
+  const pageOwner = getPageOwner();
 
   if (!idToken || !currentUser) {
     if (postForm) postForm.style.display = "none";
@@ -60,15 +61,28 @@ export async function loadPosts() {
       "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
     );
     if (!res.ok) throw new Error("Failed to load posts");
+
     const posts = await res.json();
     posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     const filteredPosts = pageOwner
-      ? posts.filter((p) => p.pageOwnerId === pageOwner.id) // 🧠 filter by current page owner
+      ? posts.filter((p) => p.pageOwnerId === pageOwner.id)
       : posts;
 
+    // ✅ Fetch user meta inline using query string
+    if (pageOwner?.id) {
+      const metaRes = await fetch(
+        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwner.id}`
+      );
+      if (metaRes.ok) {
+        const meta = await metaRes.json();
+        applyCombinedCSS(meta.layout_css || "", meta.post_css || "");
+      }
+    }
+
     renderPosts(filteredPosts);
-  } catch {
+  } catch (err) {
+    console.error("Error loading posts:", err);
     const postsSection = document.getElementById("posts");
     if (postsSection) {
       postsSection.innerHTML =

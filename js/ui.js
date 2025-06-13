@@ -308,3 +308,18 @@ export function setupOnboardingLayoutToggle({ onChange }) {
     });
   });
 }
+
+export function applyCombinedCSS(layoutCSS = "", postCSS = "") {
+  try {
+    let themeEl = document.getElementById("theme-style");
+    if (!themeEl) {
+      themeEl = document.createElement("style");
+      themeEl.id = "theme-style";
+      document.head.appendChild(themeEl);
+    }
+
+    themeEl.textContent = `${layoutCSS}\n${postCSS}`;
+  } catch (err) {
+    console.error("❌ Failed to apply user CSS:", err);
+  }
+}

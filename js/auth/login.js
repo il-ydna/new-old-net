@@ -104,74 +104,9 @@ async function createUserProfile(idToken) {
     },
   ];
 
-  const defaultCSS = `
-    /* === BASIC CUSTOM STYLES === */
-
-/* Text and background theme */
-:root {
-  --text-color: #ffffff;
-  --background-color: rgba(0,0,0,0.8);
-}
-
-/* Font settings */
-body {
-  font-family: "Times New Roman", serif;
-  color: var(--text-color);
-  background-color: var(--background-color);
-  max-width: 600px;
-  margin: auto;
-  padding: 1rem;
-}
-
-/* Optional background image settings */
-html {
-  background-size: cover;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: center center;
-}
-
-/* Post layout padding and spacing */
-.post {
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-/* Section stylings */
-section {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
-  backdrop-filter: blur(6px);
-}
-
-
-/* Image presentation */
-img {
-  max-width: 100%;
-  border-radius: 6px;
-  margin-top: 0.5rem;
-}
-
-/* Buttons */
-button,
-.button-style {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-}
-
-  `;
-
   const payload = {
     tags: defaultTags,
     default_post_tag: "journal",
-    custom_css: defaultCSS.trim(),
     created_at: Date.now(),
     default_layout: "stack",
   };

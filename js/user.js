@@ -182,7 +182,7 @@ export async function renderUserPage(username) {
       clearBtn.textContent = "All";
       clearBtn.className = "button-style";
       clearBtn.addEventListener("click", () => {
-        renderPosts(userPosts);
+        renderPosts(userPosts.slice().reverse());
 
         // Reset previously selected tag button styling
         if (selectedTagBtn) {
@@ -248,4 +248,14 @@ export async function renderUserPage(username) {
     app.innerHTML = `<p style="text-align:center; color:red;">Failed to load page for @${username}</p>`;
     console.error(err);
   }
+}
+
+import { getIdToken } from "./auth.js";
+
+export async function getUserMetaByUsername(username) {
+  const res = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?username=${username}`
+  );
+  if (!res.ok) return null;
+  return await res.json();
 }
