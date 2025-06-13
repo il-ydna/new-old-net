@@ -5,6 +5,9 @@ import { renderConfirmPage } from "./views/confirmView.js";
 import { renderEditPage } from "./edit.js";
 import { renderUserControls } from "./ui.js";
 import { renderHomePage } from "./views/homeView.js";
+import { renderStyleStep } from "./views/styleView.js";
+import { renderBackgroundStep } from "./views/backgroundView.js";
+import { renderLayoutStep } from "./views/layoutView.js";
 
 function parseRoute() {
   const path = window.location.pathname;
@@ -46,6 +49,19 @@ function parseRoute() {
 
   if (path === "/auth/confirm") {
     renderConfirmPage();
+    return;
+  }
+
+  if (path === "/onboarding/style") {
+    renderStyleStep();
+    return;
+  }
+  if (path === "/onboarding/background") {
+    renderBackgroundStep();
+    return;
+  }
+  if (path === "/onboarding/layout") {
+    renderLayoutStep();
     return;
   }
 

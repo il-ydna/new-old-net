@@ -69,7 +69,7 @@ export default function initLoginForm() {
 
         const returnTo =
           new URLSearchParams(window.location.search).get("returnTo") ||
-          (newUser ? `/@${username}/edit` : `/@${username}`);
+          (newUser ? `/onboarding/style` : `/@${username}`);
 
         history.pushState({}, "", returnTo);
         window.dispatchEvent(new Event("popstate"));

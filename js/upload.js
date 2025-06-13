@@ -169,3 +169,5 @@ export async function showImagePreview(files) {
     layoutSelector.style.display = urls.length >= 2 ? "block" : "none";
   }
 }
+
+window.showImagePreview = showImagePreview;

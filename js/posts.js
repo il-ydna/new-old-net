@@ -112,6 +112,22 @@ export function initPostForm() {
     }
 
     const files = imageInput.files;
+    const layout = formData.get("layout") || "grid";
+    const MAX_IMAGES = {
+      grid: 6,
+      stack: 6,
+      carousel: 6,
+    };
+
+    if (files.length > MAX_IMAGES[layout]) {
+      showValidationMessage(
+        `${
+          layout.charAt(0).toUpperCase() + layout.slice(1)
+        } layout supports up to ${MAX_IMAGES[layout]} images.`
+      );
+      return;
+    }
+
     const imageUrls = [];
 
     for (let i = 0; i < files.length; i++) {

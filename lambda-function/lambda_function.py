@@ -321,16 +321,15 @@ def handle_user_meta_put(event):
         claims = get_user_claims(event)
         user_id = claims.get("sub")
         body = json.loads(event.get("body", "{}"))
+
         allowed_fields = ["custom_css", "default_layout", "background_url", "tags", "default_tag"]
+        update_fields = {k: v for k, v in body.items() if k in allowed_fields}
 
-        update = {k: v for k, v in body.items() if k in allowed_fields}
-        update["id"] = user_id
+        if not update_fields:
+            return cors_response(400, {"error": "No valid fields to update"})
 
-        existing = users_table.get_item(Key={"id": user_id}).get("Item")
-        if existing and "username" in existing:
-            update["username"] = existing["username"]
-
-        bg_url = update.get("background_url", "")
+        # Handle background staging logic
+        bg_url = update_fields.get("background_url", "")
         if bg_url and "_staged_" in bg_url:
             staged_key = f"posts/bg_{user_id}_staged_0.jpg"
             final_key = f"posts/bg_{user_id}_final.jpg"
@@ -341,12 +340,24 @@ def handle_user_meta_put(event):
                 ACL="public-read",
                 ContentType="image/jpeg",
             )
-            update["background_url"] = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
+            update_fields["background_url"] = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{final_key}"
 
-        users_table.put_item(Item=update)
+        update_expr = "SET " + ", ".join(f"#{k} = :{k}" for k in update_fields)
+        expr_names = {f"#{k}": k for k in update_fields}
+        expr_values = {f":{k}": v for k, v in update_fields.items()}
+
+        users_table.update_item(
+            Key={"id": user_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values
+        )
+
         return cors_response(200, {"message": "User profile updated"})
+
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+
 
 
 

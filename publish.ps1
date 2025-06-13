@@ -10,6 +10,7 @@ aws s3 sync . "s3://$bucket" `
   --include "index.html" `
   --include "css/**" `
   --include "js/**" `
+  --include "static/**" `
   --delete
 
 # ---- Step 2: Invalidate CloudFront cache ----

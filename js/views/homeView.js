@@ -11,13 +11,12 @@ export function renderHomePage() {
         </div>    
     </header>
     <main>
-      <h1>Welcome to ___________</h1>
       <section id="posts" class="layout-timeline">
         <article class="post show">
           <div class="tag-pill" style="--pill-color: #ff6f91;" title="Hey!!!">
             <span class="pill-label">Hey!!!</span>
           </div>
-          <h3>Make yourself.</h3>
+          <h3>Make yourself!</h3>
           <p>Curate a portfolio, journal, or collection of rambling thoughts (or all three). Go nuts!</p>
           <div class="post-footer">
             <small>6/11/2025, 11:20:12 AM</small>

@@ -22,7 +22,7 @@ body {
 }
 
 body {
-  background: rgba(0, 0, 0, 0.8);
+  /* background: rgba(0, 0, 0, 0.8); */
   min-height: 100%;
   height: auto;
   color: white;
@@ -124,6 +124,7 @@ button {
 
 .post {
   position: relative; /* allow absolute positioning inside */
+  background-color: rgba(0, 0, 0, 0.6);
   padding: 1rem;
   margin-block: 1rem;
   border-radius: 0.75rem;
@@ -255,6 +256,7 @@ button:hover {
 }
 .button-style {
   appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
   display: flex;
   padding: 0.5rem 1rem;
   background-color: transparent;
@@ -363,20 +365,6 @@ button:hover {
   position: relative;
 }
 
-.layout-dropdown {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
-  background-color: rgba(0, 0, 0, 0.6);
-  border: 2px outset buttonborder;
-  border-radius: 4px;
-  font-family: "Times New Roman";
-  min-width: 4rem;
-  text-align: center;
-  display: none;
-}
-
 .section {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 1rem;
@@ -433,17 +421,55 @@ button:hover {
   border-radius: 0px;
 }
 
-.grid-image {
-  max-width: 100%;
-  margin-top: 0.5rem;
-  border-radius: 0;
-}
-
 .grid-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.grid-single {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
 }
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.uneven-5 img:nth-child(4),
+.uneven-5 img:nth-child(5) {
+  grid-column: span 3; /* Optional: make each image on the second row fill full width */
+  max-width: 48%; /* or tweak to get side-by-side look */
+  margin: 0 auto;
+}
+
+.grid-image.grid-span {
+  grid-column: span 2;
+}
+
+/* fallback or mobile */
+@media (max-width: 600px) {
+  .grid-layout.grid-3 {
+    grid-template-columns: repeat(2, 1fr); /* collapse to 2 */
+  }
+}
+
+.grid-image {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* Try to be square first */
+  object-fit: cover;
+  /* border-radius: 0.5rem; */
+  display: block;
+}
+
 .stack-layout img {
   display: block;
   margin-bottom: 0.5rem;

@@ -2,21 +2,19 @@ import { getCurrentUser } from "./state.js";
 
 // Show validation error below the post form
 export function showValidationMessage(message) {
-  const errorDiv = document.createElement("div");
-  errorDiv.id = "form-error";
-  errorDiv.textContent = message;
-  errorDiv.style.color = "salmon";
-  errorDiv.style.marginBottom = "1rem";
-  errorDiv.style.textAlign = "center";
-  errorDiv.style.fontFamily = "Times New Roman";
-  const form = document.getElementById("postForm");
-  if (form) form.append(errorDiv);
+  const errorBox = document.getElementById("form-error");
+  if (!errorBox) return;
+
+  errorBox.textContent = message;
+  errorBox.style.display = "block";
 }
 
-// Remove validation error
 export function removeValidationMessage() {
-  const existing = document.getElementById("form-error");
-  if (existing) existing.remove();
+  const errorBox = document.getElementById("form-error");
+  if (errorBox) {
+    errorBox.textContent = "";
+    errorBox.style.display = "none";
+  }
 }
 
 // Set up the tag selector dropdown
@@ -285,4 +283,28 @@ export function renderTagDropdown(tags) {
   wrapper.appendChild(options);
   wrapper.appendChild(hidden);
   return wrapper;
+}
+
+export function setupOnboardingLayoutToggle({ onChange }) {
+  const selector = document.getElementById("layout-selector");
+  const selected = selector?.querySelector(".selected-option");
+  const options = selector?.querySelector(".dropdown-options");
+  const input = document.getElementById("layoutInput");
+
+  if (!selector || !selected || !options || !input) return;
+
+  selected.addEventListener("click", () => {
+    options.style.display =
+      options.style.display === "block" ? "none" : "block";
+  });
+
+  options.querySelectorAll(".dropdown-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      const layout = opt.dataset.value;
+      input.value = layout;
+      selected.textContent = opt.textContent;
+      options.style.display = "none";
+      if (onChange) onChange(layout);
+    });
+  });
 }

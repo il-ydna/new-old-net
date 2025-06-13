@@ -3,8 +3,23 @@ import { loadPosts } from "./posts.js";
 import { setEditingPostId, getCurrentUser } from "./state.js";
 
 export function renderGrid(images) {
+  const count = images.length;
+
+  let gridClass = "grid-3";
+  let customStyles = "";
+
+  if (count === 1) {
+    gridClass = "grid-single";
+  } else if (count === 2) {
+    gridClass = "grid-2";
+  } else if (count === 4) {
+    gridClass = "grid-2"; // 2x2 layout
+  } else if (count === 5) {
+    gridClass = "grid-3 uneven-5"; // handle 3 top, 2 bottom
+  }
+
   return `
-    <div class="post-image-grid">
+    <div class="post-image-grid ${gridClass}">
       ${images
         .map((url) => `<img src="${url}" alt="Image" class="grid-image">`)
         .join("")}
