@@ -5,7 +5,7 @@ import { compressImage } from "../upload.js";
 
 let currentBackgroundURL = null;
 
-export function renderBackgroundStep(
+export async function renderBackgroundStep(
   container = document.getElementById("app")
 ) {
   const defaultThemeCSS = `:root {
@@ -26,8 +26,45 @@ export function renderBackgroundStep(
 }
 `;
 
-  const savedTheme =
-    localStorage.getItem("onboarding-post-css") || defaultThemeCSS;
+  let savedTheme = defaultThemeCSS;
+
+  try {
+    const token = await getIdToken();
+    if (token) {
+      const res = await fetch(
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const meta = await res.json();
+        const css = meta?.layout_css?.trim();
+        if (css) {
+          savedTheme = css;
+        } else {
+          // Persist default layout CSS if missing
+          await fetch(
+            "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ layout_css: defaultThemeCSS }),
+            }
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(
+      "Could not fetch user layout CSS, falling back to default",
+      err
+    );
+  }
+
+  // Allow onboarding override
+  savedTheme = localStorage.getItem("onboarding-theme-css") || savedTheme;
 
   container.innerHTML = `
     <header><h2>Style Your Page</h2></header>

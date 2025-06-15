@@ -34,6 +34,7 @@ body {
   --button-text-color: white;
   --post-form-color: rgba(0, 0, 0, 0.6);
   --post-backdrop-color: rgba(0, 0, 0, 0.6);
+  --post-text-color: white;
 }
 
 header {
@@ -144,6 +145,16 @@ button {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.4s ease, transform 0.4s ease;
+  color: var(--post-text-color);
+}
+.post p,
+.post a,
+.post span,
+.post small,
+.post strong,
+.post em,
+.post h3 {
+  color: var(--post-text-color);
 }
 
 .post.show {
@@ -208,10 +219,6 @@ button {
 
 .post h3 {
   margin: 0 0 0.25rem 0;
-}
-
-.post small {
-  color: #ccc;
 }
 
 .post button {

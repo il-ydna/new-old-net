@@ -74,71 +74,96 @@ export function renderCarousel(images) {
     </div>
   `;
 }
+const insertedUserStyles = new Set();
 
-export function renderPosts(posts) {
+export function renderPosts(posts, userCSSMap = {}) {
+  console.log("🧩 Rendering posts:", posts.length);
   const postsSection = document.getElementById("posts");
-  postsSection.innerHTML = posts
-    .slice()
-    .reverse()
-    .map((post) => {
-      const tagLabel = post.tag.charAt(0).toUpperCase() + post.tag.slice(1);
-      const color = getTagColor(post.tag);
-      const username = post.username || "Unknown User";
+  postsSection.innerHTML = "";
 
-      const currentUser = getCurrentUser();
-      const isPostOwner = post.userId && post.userId === currentUser?.id;
-      const isSiteOwner =
-        currentUser?.id === "b19b5500-0021-70d5-4f79-c9966e8d1abd";
+  for (const post of posts) {
+    const ownerId = post.pageOwnerId;
+    const css = userCSSMap[ownerId];
 
-      const deleteBtn =
-        isPostOwner || isSiteOwner
-          ? `<button onclick="deletePost('${post.id}')">Delete</button>`
-          : "";
-      const editBtn = isPostOwner
-        ? `<button onclick="editPost('${post.id}')">Edit</button>`
+    if (css && !insertedUserStyles.has(ownerId)) {
+      const style = document.createElement("style");
+      style.textContent = css;
+      style.dataset.owner = ownerId;
+      document.head.appendChild(style);
+      insertedUserStyles.add(ownerId);
+      console.log(`🎨 Injected CSS for user ${ownerId}`, css.slice(0, 120));
+    } else if (!css) {
+      console.warn(`⚠️ No CSS found for user ${ownerId}`);
+    }
+
+    const tagLabel = post.tag.charAt(0).toUpperCase() + post.tag.slice(1);
+    const color = getTagColor(post.tag);
+    const username = post.username || "Unknown User";
+
+    const currentUser = getCurrentUser();
+    const isPostOwner = post.userId && post.userId === currentUser?.id;
+    const isSiteOwner =
+      currentUser?.id === "b19b5500-0021-70d5-4f79-c9966e8d1abd";
+
+    const deleteBtn =
+      isPostOwner || isSiteOwner
+        ? `<button onclick="deletePost('${post.id}')">Delete</button>`
         : "";
+    const editBtn = isPostOwner
+      ? `<button onclick="editPost('${post.id}')">Edit</button>`
+      : "";
 
-      const signature = isPostOwner
-        ? ""
-        : `<small>Posted by <a href="user.html?id=${post.pageOwnerId}" style="color:white; text-decoration:underline;"><strong>${username}</strong></a></small>`;
+    const signature = isPostOwner
+      ? ""
+      : `<small>Posted by <a href="/@${username}" class="spa-link" style="text-decoration:underline;"><strong>@${username}</strong></a></small>`;
 
-      let imageHTML = "";
-      if (Array.isArray(post.images) && post.images.length > 0) {
-        switch (post.layout) {
-          case "carousel":
-            imageHTML = renderCarousel(post.images);
-            break;
-          case "stack":
-            imageHTML = renderStack(post.images);
-            break;
-          case "grid":
-          default:
-            imageHTML = renderGrid(post.images);
-        }
-      } else if (post.image) {
-        imageHTML = `<img src="${post.image}" alt="Post Image" class="preview-image">`;
+    let imageHTML = "";
+    if (Array.isArray(post.images) && post.images.length > 0) {
+      switch (post.layout) {
+        case "carousel":
+          imageHTML = renderCarousel(post.images);
+          break;
+        case "stack":
+          imageHTML = renderStack(post.images);
+          break;
+        case "grid":
+        default:
+          imageHTML = renderGrid(post.images);
       }
+    } else if (post.image) {
+      imageHTML = `<img src="${post.image}" alt="Post Image" class="preview-image">`;
+    }
 
-      return `
-        <article class="post" data-id="${post.id}">
-          <div class="tag-pill" style="--pill-color: ${color};" title="${tagLabel}">
-            <span class="pill-label">${tagLabel}</span>
-          </div>
-          <h3>${post.title}</h3>
-          <p>${(post.content || "").replace(/\n/g, "<br>")}</p>
-          ${imageHTML}
-          <div class="post-footer">
-            <small>${new Date(post.timestamp).toLocaleString()}</small>
-            ${signature}
-            <div class="post-actions">
-              ${editBtn}
-              ${deleteBtn}
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+    const articleWrapper = document.createElement("div");
+    articleWrapper.className = `post-owner-${ownerId}`;
+
+    const article = document.createElement("article");
+    article.className = "post";
+    article.dataset.id = post.id;
+    article.innerHTML = `
+      <div class="tag-pill" style="--pill-color: ${color};" title="${tagLabel}">
+        <span class="pill-label">${tagLabel}</span>
+      </div>
+      <h3>${post.title}</h3>
+      <p>${(post.content || "").replace(/\n/g, "<br>")}</p>
+      ${imageHTML}
+      <div class="post-footer">
+        <small>${new Date(post.timestamp).toLocaleString()}</small>
+        ${signature}
+        <div class="post-actions">
+          ${editBtn}
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+
+    articleWrapper.appendChild(article);
+    postsSection.appendChild(articleWrapper);
+
+    console.log(
+      `📌 Rendered post ${post.id} by ${username} (owner ${ownerId})`
+    );
+  }
 
   requestAnimationFrame(() => {
     document.querySelectorAll(".post").forEach((el, i) => {

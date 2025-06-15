@@ -1,13 +1,18 @@
 import { setupOnboardingLayoutToggle } from "../ui.js";
 import { getIdToken } from "../auth.js";
 
-export function renderStyleStep(container = document.getElementById("app")) {
+export async function renderStyleStep(
+  container = document.getElementById("app")
+) {
   const defaultCSS = `/* You can edit these styles to customize how your posts look */
+:root {
+  --post-text-color: white;
+}
+
 .post {
   padding: 2rem;
   border-radius: 0.75rem;
   background-color: rgba(0, 0, 0, 0.6);
-  color: white;
   font-family: "Times New Roman";
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
@@ -30,7 +35,43 @@ img {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }`;
 
-  const savedCSS = localStorage.getItem("onboarding-post-css") || defaultCSS;
+  let savedCSS = defaultCSS;
+
+  try {
+    const token = await getIdToken();
+    if (token) {
+      const res = await fetch(
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const meta = await res.json();
+        const css = meta?.post_css?.trim();
+        if (css) {
+          savedCSS = css;
+        } else {
+          // Optional: immediately persist default if none set
+          await fetch(
+            "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ post_css: defaultCSS }),
+            }
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch user CSS, falling back to default", err);
+  }
+
+  // Still allow overriding from localStorage if present (for onboarding)
+  savedCSS = localStorage.getItem("onboarding-post-css") || savedCSS;
+
   let layout = "grid";
   let imageCount = 6;
 

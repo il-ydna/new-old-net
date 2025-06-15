@@ -166,13 +166,65 @@ export async function renderUserPage(username) {
       initMain();
     }
 
+    // Add Follow / Following button if logged in and viewing someone else's page
+    const currentUser = getCurrentUser();
+    if (currentUser?.id && currentUser.id !== userMeta.id) {
+      const header = document.querySelector("header");
+
+      const followBtn = document.createElement("button");
+      followBtn.id = "followToggleBtn";
+      followBtn.textContent = "Follow";
+      followBtn.className = "button-style";
+
+      // Fetch follow state
+      const token = await getIdToken();
+      const res = await fetch(
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/following",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.ok) {
+        const { following } = await res.json();
+        if (following.includes(userMeta.id)) {
+          followBtn.textContent = "Following";
+        }
+      }
+
+      followBtn.addEventListener("click", async () => {
+        const token = await getIdToken();
+        const result = await fetch(
+          "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/follow",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ followed_id: userMeta.id }),
+          }
+        );
+
+        if (result.ok) {
+          const { status } = await result.json();
+          followBtn.textContent =
+            status === "followed" ? "Following" : "Follow";
+        }
+      });
+
+      header.appendChild(followBtn);
+    }
+
     const postsRes = await fetch(
       "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
     );
     const allPosts = await postsRes.json();
     const userPosts = allPosts.filter((p) => p.pageOwnerId === userMeta.id);
 
-    renderPosts(userPosts); // Default render all
+    renderPosts(
+      userPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    );
 
     // ✅ Setup tag filters
     const tagButtonContainer = document.getElementById("tag-filter-buttons");
@@ -182,7 +234,11 @@ export async function renderUserPage(username) {
       clearBtn.textContent = "All";
       clearBtn.className = "button-style";
       clearBtn.addEventListener("click", () => {
-        renderPosts(userPosts.slice().reverse());
+        renderPosts(
+          userPosts.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          )
+        );
 
         // Reset previously selected tag button styling
         if (selectedTagBtn) {
@@ -225,7 +281,11 @@ export async function renderUserPage(username) {
 
         btn.addEventListener("click", () => {
           const filtered = userPosts.filter((p) => p.tag === tag.value);
-          renderPosts(filtered);
+          renderPosts(
+            filtered.sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+            )
+          );
 
           // Reset previously selected
           if (selectedTagBtn) {

@@ -14,11 +14,19 @@ function parseRoute() {
   console.log("Routing to", path); // debug
 
   if (path === "/" || path === "") {
-    renderHomePage();
+    const token = localStorage.getItem("idToken");
 
-    const controlsEl = renderUserControls();
-    const placeholder = document.getElementById("user-controls");
-    if (placeholder) placeholder.replaceWith(controlsEl);
+    if (token) {
+      // ✅ Dynamically load the personalized feed
+      import("./views/feedView.js").then((mod) => mod.renderFeedView());
+    } else {
+      // ✅ Show static homepage to logged-out users
+      renderHomePage();
+
+      const controlsEl = renderUserControls();
+      const placeholder = document.getElementById("user-controls");
+      if (placeholder) placeholder.replaceWith(controlsEl);
+    }
 
     return;
   }

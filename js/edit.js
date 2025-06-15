@@ -2,9 +2,39 @@ import { renderStyleStep } from "./views/editPostView.js";
 import { renderBackgroundStep } from "./views/editPageView.js";
 import { updateHeader } from "./posts.js";
 import { getCurrentUser } from "./state.js";
-
+import { getIdToken } from "./auth.js";
+import { getUserIdFromToken } from "./auth.js";
+import { setCurrentUser } from "./state.js";
 export async function renderEditPage(username) {
   const app = document.getElementById("app");
+
+  // ⛔ Lazy-load current user if needed
+  let currentUser = getCurrentUser();
+  if (!currentUser) {
+    const token = await getIdToken();
+    const userId = await getUserIdFromToken(token);
+    if (userId) {
+      const res = await fetch(
+        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const userMeta = await res.json();
+        currentUser = { id: userId, ...userMeta };
+        setCurrentUser(currentUser);
+      }
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("id") || currentUser?.id;
+
+  // 🔒 Block access if still unauthorized or not the owner
+  if (!currentUser || userId !== currentUser.id) {
+    history.replaceState({}, "", `/@${currentUser?.username || "me"}`);
+    window.dispatchEvent(new Event("popstate"));
+    return;
+  }
 
   app.innerHTML = `
 <div class="tab-bar" style="
@@ -31,12 +61,12 @@ export async function renderEditPage(username) {
 
   const tabContent = document.getElementById("tab-content");
 
-  function renderTab(tab) {
+  async function renderTab(tab) {
     tabContent.innerHTML = ""; // clear previous content
     if (tab === "page") {
-      renderStyleStep(tabContent); // Pass container
+      await renderStyleStep(tabContent); // Pass container
     } else if (tab === "layout") {
-      renderBackgroundStep(tabContent); // Pass container
+      await renderBackgroundStep(tabContent); // Pass container
     }
 
     document.querySelectorAll(".tab-button").forEach((btn) => {
@@ -44,11 +74,11 @@ export async function renderEditPage(username) {
     });
   }
 
-  renderTab("page");
+  await renderTab("page");
 
   document.querySelectorAll(".tab-button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      renderTab(btn.dataset.tab);
+    btn.addEventListener("click", async () => {
+      await renderTab(btn.dataset.tab);
     });
   });
 
@@ -57,8 +87,6 @@ export async function renderEditPage(username) {
     history.pushState({}, "", `/@${username}`);
     window.dispatchEvent(new Event("popstate"));
   });
-  const params = new URLSearchParams(window.location.search);
-  const userId = params.get("id"); // or use `getPageOwner()?.id` if available
 
   if (userId) {
     fetch(

@@ -22,6 +22,8 @@ bucket_name = os.environ['S3_BUCKET_NAME']
 dynamodb = boto3.resource("dynamodb")
 posts_table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
 users_table = dynamodb.Table(os.environ['USERS_TABLE_NAME'])
+follows_table = dynamodb.Table(os.environ['FOLLOWS_TABLE_NAME'])
+
 
 # Helpers
 def get_user_claims(event):
@@ -99,6 +101,21 @@ def lambda_handler(event, context):
         if method == "PUT":
             return handle_user_meta_put(event)
         return cors_response(405, {"error": "Method Not Allowed"})
+    
+    if path == "/follow":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "POST":
+            return handle_toggle_follow(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
+
+    if path == "/following":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "GET":
+            return handle_get_following(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
+
 
     return cors_response(404, {"message": "Not Found"})
 
@@ -359,6 +376,41 @@ def handle_user_meta_put(event):
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
+def handle_toggle_follow(event):
+    try:
+        claims = get_user_claims(event)
+        follower_id = claims.get("sub")
+        body = json.loads(event.get("body", "{}"))
+        followed_id = body.get("followed_id")
+
+        if not followed_id:
+            return cors_response(400, {"error": "Missing followed_id"})
+
+        key = {"follower_id": follower_id, "followed_id": followed_id}
+        existing = follows_table.get_item(Key=key).get("Item")
+
+        if existing:
+            follows_table.delete_item(Key=key)
+            return cors_response(200, {"status": "unfollowed"})
+        else:
+            follows_table.put_item(Item={**key, "timestamp": int(time.time() * 1000)})
+            return cors_response(200, {"status": "followed"})
+
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+    
+def handle_get_following(event):
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+
+        resp = follows_table.query(
+            KeyConditionExpression=Key("follower_id").eq(user_id)
+        )
+        followed_ids = [item["followed_id"] for item in resp.get("Items", [])]
+        return cors_response(200, {"following": followed_ids})
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
 
 
 
