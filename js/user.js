@@ -103,14 +103,25 @@ export async function renderUserPage(username) {
     }
 
     // Apply custom CSS
-    if (userMeta.custom_css) {
+    if (userMeta.post_css) {
       const existing = document.getElementById("user-custom-style");
       if (existing) existing.remove();
 
       const style = document.createElement("style");
       style.id = "user-custom-style";
-      style.textContent = userMeta.custom_css;
+      style.textContent = userMeta.post_css;
       document.head.appendChild(style);
+    }
+
+    // Apply layout_css (e.g. columns, theme vars, etc.)
+    if (userMeta.layout_css) {
+      let themeEl = document.getElementById("theme-style");
+      if (!themeEl) {
+        themeEl = document.createElement("style");
+        themeEl.id = "theme-style";
+        document.head.appendChild(themeEl);
+      }
+      themeEl.textContent = userMeta.layout_css;
     }
 
     // Apply background
