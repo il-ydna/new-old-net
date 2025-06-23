@@ -93,7 +93,7 @@ export function renderPosts(posts, userCSSMap = {}) {
       insertedUserStyles.add(ownerId);
       console.log(`🎨 Injected CSS for user ${ownerId}`, css.slice(0, 120));
     } else if (!css) {
-      console.warn(`⚠️ No CSS found for user ${ownerId}`);
+      console.log(`⚠️ No CSS found for user ${ownerId}`);
     }
 
     const tagLabel = post.tag.charAt(0).toUpperCase() + post.tag.slice(1);

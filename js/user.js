@@ -150,7 +150,7 @@ export async function renderUserPage(username) {
           console.log("✅ Default tag set:", defaultTag);
         }
       } else {
-        console.warn("🚫 Tag input or default display element missing.");
+        console.log("🚫 Tag input or default display element missing.");
       }
     }
 

@@ -1,4 +1,5 @@
 import { getIdToken } from "../auth.js";
+import { getUserIdFromToken } from "../auth.js";
 import { applyUserBackground } from "../ui.js";
 import { getPageOwner } from "../state.js";
 import { compressImage } from "../upload.js";
@@ -30,37 +31,37 @@ export async function renderBackgroundStep(
 
   try {
     const token = await getIdToken();
-    if (token) {
+    const userId = await getUserIdFromToken();
+
+    if (token && userId) {
       const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
-        { headers: { Authorization: `Bearer ${token}` } }
+        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       if (res.ok) {
         const meta = await res.json();
-        const css = meta?.layout_css?.trim();
+        const css = meta?.post_css?.trim();
         if (css) {
           savedTheme = css;
         } else {
-          // Persist default layout CSS if missing
           await fetch(
-            "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+            `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta`,
             {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ layout_css: defaultThemeCSS }),
+              body: JSON.stringify({ post_css: defaultCSS }),
             }
           );
         }
       }
     }
   } catch (err) {
-    console.warn(
-      "Could not fetch user layout CSS, falling back to default",
-      err
-    );
+    console.warn("Could not fetch user CSS, falling back to default", err);
   }
 
   // Allow onboarding override
@@ -322,7 +323,9 @@ export async function renderBackgroundStep(
 
     const compressedFile = await compressImage(file);
 
-    const stagedKey = `bg_onboarding_${Date.now()}`;
+    const userId = await getUserIdFromToken();
+    const stagedKey = `bg_${userId}_staged`;
+
     const presignRes = await fetch(
       `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?presign&post_id=${stagedKey}&index=0`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -335,7 +338,7 @@ export async function renderBackgroundStep(
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", upload_url, true);
     xhr.setRequestHeader("Content-Type", "image/jpeg");
-    xhr.setRequestHeader("x-amz-acl", "public-read");
+    // xhr.setRequestHeader("x-amz-acl", "public-read");
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -431,14 +434,18 @@ export async function renderBackgroundStep(
       if (isDefault) defaultTagValue = value;
     });
 
+    const cleanURL = currentBackgroundURL?.split("?")[0];
+
     try {
       const payload = {
         layout_css: editor.getValue(),
         default_layout: layoutSelect.value,
-        background_url: currentBackgroundURL,
+        background_url: cleanURL,
         tags,
         default_tag: defaultTagValue || "",
       };
+
+      console.log("Saved background_url:", currentBackgroundURL);
 
       const res = await fetch(
         "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
@@ -722,7 +729,7 @@ function renderColorSuggestions(colors) {
 function loadImageAndExtractPalette(imageUrl, callback) {
   const img = new Image();
   img.crossOrigin = "anonymous";
-  img.src = imageUrl;
+  img.src = imageUrl + "?t=" + Date.now();
 
   img.onload = () => {
     const colors = getDistinctColorsFromImage(img, 10);

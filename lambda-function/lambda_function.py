@@ -165,7 +165,6 @@ def handle_presign(event):
                 "Bucket": bucket_name,
                 "Key": key,
                 "ContentType": "image/jpeg",
-                "ACL": "public-read"
             },
             ExpiresIn=300
         )
@@ -348,9 +347,11 @@ def handle_user_meta_put(event):
 
         # Handle background staging logic
         bg_url = update_fields.get("background_url", "")
+        print('hi')
         if bg_url and "_staged_" in bg_url:
             staged_key = f"posts/bg_{user_id}_staged_0.jpg"
             final_key = f"posts/bg_{user_id}_final.jpg"
+            print(staged_key, final_key)
             s3.copy_object(
                 Bucket=bucket_name,
                 CopySource=f"{bucket_name}/{staged_key}",

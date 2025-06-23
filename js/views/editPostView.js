@@ -1,4 +1,5 @@
 import { setupOnboardingLayoutToggle } from "../ui.js";
+import { getUserIdFromToken } from "../auth.js";
 import { getIdToken } from "../auth.js";
 
 export async function renderStyleStep(
@@ -39,10 +40,14 @@ img {
 
   try {
     const token = await getIdToken();
-    if (token) {
+    const userId = await getUserIdFromToken();
+
+    if (token && userId) {
       const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
-        { headers: { Authorization: `Bearer ${token}` } }
+        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       if (res.ok) {
         const meta = await res.json();
@@ -50,9 +55,8 @@ img {
         if (css) {
           savedCSS = css;
         } else {
-          // Optional: immediately persist default if none set
           await fetch(
-            "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+            `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta`,
             {
               method: "PUT",
               headers: {

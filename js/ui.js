@@ -218,7 +218,9 @@ export function renderUserControls() {
   }
 
   wrapper.innerHTML = `
-    <div id="username">Signed in as ${user.username}</div>
+    <div id="username">
+      Signed in as <a href="/@${user.username}" id="userLink" style="color: var(--post-text-color); text-decoration: underline;">@${user.username}</a>
+    </div>
     <button id="logout">Log out</button>
   `;
 
