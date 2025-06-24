@@ -105,7 +105,7 @@ export async function renderFeedView() {
     const filtered =
       mode === "following"
         ? allPosts.filter((p) => following.includes(p.pageOwnerId))
-        : allPosts;
+        : allPosts.filter((p) => (p.visibility || "public") === "public");
 
     if (filtered.length === 0) {
       postsEl.innerHTML =

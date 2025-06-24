@@ -6,6 +6,26 @@ console.log("Cognito SDK loaded?", typeof AmazonCognitoIdentity);
 
 export const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
+import { setCurrentUser } from "./state.js";
+
+export async function fetchUserMeta() {
+  const token = await getIdToken();
+  const userId = await getUserIdFromToken(token);
+  if (!token || !userId) return null;
+
+  const res = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!res.ok) return null;
+
+  const userMeta = await res.json();
+  const user = { id: userId, ...userMeta };
+  setCurrentUser(user);
+  return user;
+}
+
 export function getIdToken() {
   const user = userPool.getCurrentUser();
   return new Promise((resolve) => {

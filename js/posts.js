@@ -63,13 +63,19 @@ export async function loadPosts() {
     if (!res.ok) throw new Error("Failed to load posts");
 
     const posts = await res.json();
-    posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const allPosts = posts.sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
 
-    const filteredPosts = pageOwner
-      ? posts.filter((p) => p.pageOwnerId === pageOwner.id)
-      : posts;
+    const userPosts = pageOwner
+      ? allPosts.filter((p) => {
+          const isOwner = currentUser?.id === pageOwner.id;
+          const isPublic = (p.visibility || "private") === "public";
+          return p.pageOwnerId === pageOwner.id && (isOwner || isPublic);
+        })
+      : allPosts;
 
-    // ✅ Fetch user meta inline using query string
+    // Apply layout + post CSS from page owner
     if (pageOwner?.id) {
       const metaRes = await fetch(
         `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwner.id}`
@@ -77,10 +83,79 @@ export async function loadPosts() {
       if (metaRes.ok) {
         const meta = await metaRes.json();
         applyCombinedCSS(meta.layout_css || "", meta.post_css || "");
+
+        // ✅ Setup tag filters
+        const tagContainer = document.getElementById("tag-filter-buttons");
+        if (tagContainer) tagContainer.innerHTML = "";
+
+        if (Array.isArray(meta.tags) && meta.tags.length > 0 && tagContainer) {
+          let selectedTagBtn = null;
+
+          const clearBtn = document.createElement("button");
+          clearBtn.textContent = "All";
+          clearBtn.className = "button-style";
+          clearBtn.addEventListener("click", () => {
+            renderPosts(userPosts);
+            if (selectedTagBtn) {
+              selectedTagBtn.style.backgroundColor = "transparent";
+              selectedTagBtn.style.color = "white";
+              const dot = selectedTagBtn.querySelector(".dot");
+              if (dot) dot.style.display = "inline-block";
+              selectedTagBtn = null;
+            }
+          });
+          tagContainer.appendChild(clearBtn);
+
+          meta.tags.forEach((tag) => {
+            const btn = document.createElement("button");
+            btn.className = "button-style";
+            btn.dataset.tag = tag.value;
+
+            const label = document.createElement("span");
+            label.style.display = "flex";
+            label.style.alignItems = "center";
+            label.style.gap = "0.5rem";
+
+            const leftDot = document.createElement("span");
+            leftDot.className = "dot";
+            leftDot.style.background = tag.color;
+            leftDot.style.width = "0.75rem";
+            leftDot.style.height = "0.75rem";
+            leftDot.style.borderRadius = "50%";
+            leftDot.style.display = "inline-block";
+
+            const rightDot = leftDot.cloneNode();
+            const text = document.createTextNode(tag.name);
+
+            label.appendChild(leftDot);
+            label.appendChild(text);
+            label.appendChild(rightDot);
+            btn.appendChild(label);
+
+            btn.addEventListener("click", () => {
+              const filtered = userPosts.filter((p) => p.tag === tag.value);
+              renderPosts(filtered);
+
+              if (selectedTagBtn) {
+                selectedTagBtn.style.backgroundColor =
+                  "rgba(255, 255, 255, 0.1)";
+                selectedTagBtn.style.color = "white";
+                const dot = selectedTagBtn.querySelector(".dot");
+                if (dot) dot.style.display = "inline-block";
+              }
+
+              btn.style.backgroundColor = tag.color;
+              btn.style.color = tag.textColor || "white";
+              selectedTagBtn = btn;
+            });
+
+            tagContainer.appendChild(btn);
+          });
+        }
       }
     }
 
-    renderPosts(filteredPosts);
+    renderPosts(userPosts);
   } catch (err) {
     console.error("Error loading posts:", err);
     const postsSection = document.getElementById("posts");
@@ -159,6 +234,7 @@ export function initPostForm() {
       content: formData.get("content"),
       images: imageUrls,
       tag: formData.get("tag") || "general",
+      visibility: formData.get("visibility") || "public",
       layout: formData.get("layout") || "grid",
       timestamp: Date.now(),
       username: currentUsername,
@@ -206,7 +282,7 @@ export function initPostForm() {
 
       loadPosts();
 
-      document.getElementById("submitPostBtn").textContent = "Add Post";
+      document.getElementById("submitPostBtn").textContent = "Post";
       postForm.classList.remove("editing");
       document.getElementById("cancelEditBtn").style.display = "none";
     } catch (error) {

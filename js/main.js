@@ -26,7 +26,7 @@ async function initializeUserState() {
 
 export default function initMain() {
   updateHeader();
-  loadPosts();
+  // loadPosts();
   setupTagDropdown();
   setupCancelEditButton();
   setupImageLayoutDropdown();

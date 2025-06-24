@@ -1,9 +1,10 @@
-import { renderPosts } from "./render.js";
+import { loadPosts } from "./posts.js";
 import {
   setupPostLayoutToggle,
   createEditPageButton,
   setupTagDropdown,
   renderTagDropdown,
+  renderShareDropdown,
 } from "./ui.js";
 import { updateHeader } from "./posts.js";
 import { getCurrentUser, setPageOwner, getPageOwner } from "./state.js";
@@ -30,8 +31,11 @@ export function renderPostFormHTML() {
               </div>
               <div id="tag-dropdown-wrapper"></div>
 
-
-              <button type="submit" id="submitPostBtn">Post</button>
+              <div id="share-dropdown-wrapper"></div>
+            </div>
+            <div style="display: flex; margin-top: 1rem;">
+              <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
+              <button type="submit" id="submitPostBtn" style="margin-left: auto;">Post</button>
             </div>
             <div id="form-error" class="form-error" style="color: red; margin-top: 1rem; display: none; text-align: center"></div>
 
@@ -47,7 +51,7 @@ export function renderPostFormHTML() {
               </div>
             </div>
 
-            <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
+            
           </form>
         </div>
       </section>
@@ -165,6 +169,12 @@ export async function renderUserPage(username) {
       }
     }
 
+    const shareWrapper = document.getElementById("share-dropdown-wrapper");
+    if (shareWrapper) {
+      const dropdown = renderShareDropdown();
+      shareWrapper.append(dropdown);
+    }
+
     if (getCurrentUser()?.id === userMeta.id) {
       document.getElementById("owner-controls").style.display = "block";
 
@@ -227,94 +237,7 @@ export async function renderUserPage(username) {
       header.appendChild(followBtn);
     }
 
-    const postsRes = await fetch(
-      "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
-    );
-    const allPosts = await postsRes.json();
-    const userPosts = allPosts.filter((p) => p.pageOwnerId === userMeta.id);
-
-    renderPosts(
-      userPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    );
-
-    // ✅ Setup tag filters
-    const tagButtonContainer = document.getElementById("tag-filter-buttons");
-
-    if (Array.isArray(userMeta.tags) && userMeta.tags.length > 0) {
-      const clearBtn = document.createElement("button");
-      clearBtn.textContent = "All";
-      clearBtn.className = "button-style";
-      clearBtn.addEventListener("click", () => {
-        renderPosts(
-          userPosts.sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-          )
-        );
-
-        // Reset previously selected tag button styling
-        if (selectedTagBtn) {
-          selectedTagBtn.style.backgroundColor = "transparent";
-          selectedTagBtn.style.color = "white";
-          const oldDot = selectedTagBtn.querySelector(".dot");
-          if (oldDot) oldDot.style.display = "inline-block";
-          selectedTagBtn = null; // Clear selection
-        }
-      });
-      tagButtonContainer.appendChild(clearBtn);
-
-      let selectedTagBtn = null;
-
-      userMeta.tags.forEach((tag) => {
-        const btn = document.createElement("button");
-        btn.className = "button-style";
-        btn.dataset.tag = tag.value;
-
-        const label = document.createElement("span");
-        label.style.display = "flex";
-        label.style.alignItems = "center";
-        label.style.gap = "0.5rem";
-
-        const leftDot = document.createElement("span");
-        leftDot.className = "dot";
-        leftDot.style.background = tag.color;
-        leftDot.style.width = "0.75rem";
-        leftDot.style.height = "0.75rem";
-        leftDot.style.borderRadius = "50%";
-        leftDot.style.display = "inline-block";
-
-        const rightDot = leftDot.cloneNode(); // exact duplicate
-        const text = document.createTextNode(tag.name);
-
-        label.appendChild(leftDot);
-        label.appendChild(text);
-        label.appendChild(rightDot);
-        btn.appendChild(label);
-
-        btn.addEventListener("click", () => {
-          const filtered = userPosts.filter((p) => p.tag === tag.value);
-          renderPosts(
-            filtered.sort(
-              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-            )
-          );
-
-          // Reset previously selected
-          if (selectedTagBtn) {
-            selectedTagBtn.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-            selectedTagBtn.style.color = "white";
-            const oldDot = selectedTagBtn.querySelector(".dot");
-            if (oldDot) oldDot.style.display = "inline-block";
-          }
-
-          // Highlight current button
-          btn.style.backgroundColor = tag.color;
-          btn.style.color = tag.textColor || "white";
-          selectedTagBtn = btn;
-        });
-
-        tagButtonContainer.appendChild(btn);
-      });
-    }
+    await loadPosts();
   } catch (err) {
     app.innerHTML = `<p style="text-align:center; color:red;">Failed to load page for @${username}</p>`;
     console.error(err);

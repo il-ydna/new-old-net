@@ -81,7 +81,7 @@ export function setupCancelEditButton() {
     if (previewContainer) previewContainer.innerHTML = "";
     if (imageLabel) imageLabel.textContent = "Choose/Drop Image";
     if (imageInput) imageInput.value = "";
-    if (submitBtn) submitBtn.textContent = "Add Post";
+    if (submitBtn) submitBtn.textContent = "Post";
 
     form.classList.remove("editing");
     cancelBtn.style.display = "none";
@@ -239,6 +239,65 @@ export function renderUserControls() {
 
   return wrapper;
 }
+
+export function renderShareDropdown() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "custom-dropdown";
+  wrapper.id = "shareDropdown";
+
+  const selected = document.createElement("div");
+  selected.className = "selected-option button-style";
+  selected.textContent = "Public";
+
+  const options = document.createElement("div");
+  options.className = "dropdown-options";
+
+  const values = [
+    { value: "public", label: "Public" },
+    { value: "private", label: "Private" },
+  ];
+
+  values.forEach(({ value, label }) => {
+    const option = document.createElement("div");
+    option.className = "dropdown-option";
+    option.setAttribute("data-value", value);
+    option.textContent = label;
+    options.appendChild(option);
+  });
+
+  const hidden = document.createElement("input");
+  hidden.type = "hidden";
+  hidden.name = "visibility";
+  hidden.id = "visibilityInput";
+  hidden.required = true;
+  hidden.value = "public"; // default
+
+  wrapper.appendChild(selected);
+  wrapper.appendChild(options);
+  wrapper.appendChild(hidden);
+
+  selected.addEventListener("click", () => {
+    options.style.display =
+      options.style.display === "block" ? "none" : "block";
+  });
+
+  options.querySelectorAll(".dropdown-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      selected.textContent = opt.textContent;
+      hidden.value = opt.getAttribute("data-value");
+      options.style.display = "none";
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!wrapper.contains(e.target)) {
+      options.style.display = "none";
+    }
+  });
+
+  return wrapper;
+}
+
 export function renderTagDropdown(tags) {
   const wrapper = document.createElement("div");
   wrapper.className = "custom-dropdown";

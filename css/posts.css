@@ -1,5 +1,6 @@
 body {
   background-size: cover;
+  overscroll-behavior: none;
   max-width: 600px;
   margin: auto;
   font-family: var(--default-font);
@@ -295,7 +296,7 @@ button:hover {
   position: relative;
   display: inline-block;
   font-family: var(--default-font);
-  padding: 0.25rem 0.5rem;
+  /* padding: 0.25rem 0.5rem; */
   font-size: 0.75rem;
 }
 

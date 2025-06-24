@@ -192,6 +192,7 @@ def handle_post(event):
             "title": body.get("title"),
             "content": body.get("content"),
             "tag": body.get("tag", "general"),
+            "visibility": body.get("visibility", "public"),
             "timestamp": body.get("timestamp"),
             "images": body.get("images", []),
             "layout": body.get("layout", "grid"),
