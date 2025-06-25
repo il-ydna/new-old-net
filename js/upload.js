@@ -40,26 +40,37 @@ export async function compressImage(file, quality = 0.7, maxWidth = 1280) {
 }
 
 export async function uploadImageToS3(file, postId, index) {
+  console.log("uploading to s3");
   const compressedFile = await compressImage(file);
 
   const presignRes = await fetch(
     `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?presign&post_id=${postId}&index=${index}`,
     {
       method: "GET",
-      headers: { Authorization: `Bearer ${await getIdToken()}` },
+      headers: {
+        Authorization: `Bearer ${await getIdToken()}`,
+        // ❌ DO NOT send x-amz-acl here
+      },
     }
   );
+
   const { upload_url, public_url } = await presignRes.json();
 
-  await fetch(upload_url, {
+  const uploadRes = await fetch(upload_url, {
     method: "PUT",
     headers: {
-      "Content-Type": "image/jpeg",
-      "x-amz-acl": "public-read",
+      "x-amz-acl": "public-read", // ✅ required to make the object public
     },
     body: compressedFile,
   });
 
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text();
+    console.error("❌ Upload failed:", uploadRes.status, text);
+    throw new Error("Upload to S3 failed");
+  }
+
+  console.log("✅ Upload succeeded:", public_url);
   return public_url;
 }
 

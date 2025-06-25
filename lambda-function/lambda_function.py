@@ -65,9 +65,11 @@ def upload_image_to_s3(base64_str, post_id):
 
 # Entry point
 def lambda_handler(event, context):
+    
     method = event.get("requestContext", {}).get("http", {}).get("method")
     path = event.get("rawPath")
     qs = event.get("queryStringParameters") or {}
+    print("🧭 Routing", method, path, event.get("queryStringParameters"))
 
     print("Received event:")
     print(json.dumps(event, indent=2))
@@ -148,6 +150,7 @@ def handle_get_post_by_id(event):
 
 
 def handle_presign(event):
+    print('hi')
     try:
         claims = get_user_claims(event)
         user_sub = claims.get("sub", "anonymous")
@@ -157,21 +160,27 @@ def handle_presign(event):
 
         if not post_id:
             return cors_response(400, {"error": "Missing post_id"})
-
+        
         key = f"posts/{post_id}_{index}.jpg"
+
         url = s3.generate_presigned_url(
             ClientMethod="put_object",
             Params={
                 "Bucket": bucket_name,
                 "Key": key,
-                "ContentType": "image/jpeg",
+                "ACL": "public-read", 
             },
             ExpiresIn=300
         )
+
         public_url = f"https://{bucket_name}.s3.{s3.meta.region_name}.amazonaws.com/{key}"
         return cors_response(200, {"upload_url": url, "public_url": public_url})
     except Exception as e:
-        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+        print("❌ Error in handle_presign:", str(e))
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
 
 def handle_post(event):
     try:
@@ -423,7 +432,7 @@ def cors_response(status_code, body_dict):
         "headers": {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE, PUT",
-            "Access-Control-Allow-Headers": "Content-Type,Authorization"
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,x-amz-acl"
         },
         "body": json.dumps(body_dict)
     }
