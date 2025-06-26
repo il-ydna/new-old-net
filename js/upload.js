@@ -1,7 +1,7 @@
 import { getIdToken } from "./auth.js";
 import { renderGrid, renderStack, renderCarousel } from "./render.js";
 
-export async function compressImage(file, quality = 0.7, maxWidth = 1280) {
+export async function compressImage(file, quality = 0.85, maxWidth = 1600) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);

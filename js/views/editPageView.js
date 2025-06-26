@@ -726,17 +726,39 @@ function renderColorSuggestions(colors) {
   });
 }
 
-function loadImageAndExtractPalette(imageUrl, callback) {
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  img.src = imageUrl + "?t=" + Date.now();
+async function loadImageAndExtractPalette(imageUrl, callback) {
+  try {
+    const res = await fetch(imageUrl, {
+      mode: "cors",
+      cache: "reload", // Force bypass of any tainted cache
+    });
 
-  img.onload = () => {
-    const colors = getDistinctColorsFromImage(img, 10);
-    callback(colors);
-  };
+    if (!res.ok) {
+      console.warn("❌ Failed to fetch image for palette analysis:", imageUrl);
+      return;
+    }
 
-  img.onerror = () => {
-    console.warn("❌ Could not load image for palette analysis:", imageUrl);
-  };
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = objectUrl;
+
+    img.onload = () => {
+      const colors = getDistinctColorsFromImage(img, 10);
+      callback(colors);
+      URL.revokeObjectURL(objectUrl); // Clean up
+    };
+
+    img.onerror = () => {
+      console.warn("❌ Could not load image for palette analysis:", objectUrl);
+    };
+  } catch (err) {
+    console.warn(
+      "❌ Error fetching image for palette analysis:",
+      imageUrl,
+      err
+    );
+  }
 }

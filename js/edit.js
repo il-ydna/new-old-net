@@ -1,5 +1,6 @@
 import { renderStyleStep } from "./views/editPostView.js";
 import { renderBackgroundStep } from "./views/editPageView.js";
+// import { renderProjectStep } from "./views/editProjectView.js";
 import { updateHeader } from "./posts.js";
 import { getCurrentUser } from "./state.js";
 import { fetchUserMeta } from "./auth.js";
