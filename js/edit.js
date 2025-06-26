@@ -36,6 +36,7 @@ export async function renderEditPage(username) {
     <button id="backToPageBtn">← Back</button>
     <button class="tab-button selected" data-tab="page">Posts</button>
     <button class="tab-button" data-tab="layout">Layout</button>
+    <button class="tab-button" data-tab="projects">Projects</button>
   </div>
   <div id="user-controls"></div>
 </div>

@@ -1,4 +1,4 @@
-import { updateHeader, loadPosts, initPostForm } from "./posts.js";
+import { updateHeader, initPostForm } from "./posts.js";
 import {
   setupTagDropdown,
   setupCancelEditButton,

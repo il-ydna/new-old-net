@@ -168,7 +168,7 @@ def handle_presign(event):
             Params={
                 "Bucket": bucket_name,
                 "Key": key,
-                "ACL": "public-read", 
+                # "ACL": "public-read", 
             },
             ExpiresIn=300
         )
