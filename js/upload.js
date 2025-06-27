@@ -49,7 +49,6 @@ export async function uploadImageToS3(file, postId, index) {
       method: "GET",
       headers: {
         Authorization: `Bearer ${await getIdToken()}`,
-        // ❌ DO NOT send x-amz-acl here
       },
     }
   );
@@ -59,7 +58,7 @@ export async function uploadImageToS3(file, postId, index) {
   const uploadRes = await fetch(upload_url, {
     method: "PUT",
     headers: {
-      "x-amz-acl": "public-read", // ✅ required to make the object public
+      "Content-Type": "image/jpeg",
     },
     body: compressedFile,
   });

@@ -1,6 +1,6 @@
-import { renderStyleStep } from "./views/editPostView.js";
-import { renderBackgroundStep } from "./views/editPageView.js";
-// import { renderProjectStep } from "./views/editProjectView.js";
+import { renderStyleTab } from "./views/editPostView.js";
+import { renderBackgroundTab } from "./views/editPageView.js";
+import { renderProjectTab } from "./views/editProjectView.js";
 import { updateHeader } from "./posts.js";
 import { getCurrentUser } from "./state.js";
 import { fetchUserMeta } from "./auth.js";
@@ -52,9 +52,11 @@ export async function renderEditPage(username) {
   async function renderTab(tab) {
     tabContent.innerHTML = ""; // clear previous content
     if (tab === "page") {
-      await renderStyleStep(tabContent); // Pass container
+      await renderStyleTab(tabContent); // Pass container
     } else if (tab === "layout") {
-      await renderBackgroundStep(tabContent); // Pass container
+      await renderBackgroundTab(tabContent); // Pass container
+    } else if (tab === "projects") {
+      await renderProjectTab(tabContent); // Pass container
     }
 
     document.querySelectorAll(".tab-button").forEach((btn) => {

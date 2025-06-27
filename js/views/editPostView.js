@@ -2,7 +2,7 @@ import { setupOnboardingLayoutToggle } from "../ui.js";
 import { getUserIdFromToken } from "../auth.js";
 import { getIdToken } from "../auth.js";
 
-export async function renderStyleStep(
+export async function renderStyleTab(
   container = document.getElementById("app")
 ) {
   const defaultCSS = `/* You can edit these styles to customize how your posts look */
@@ -51,9 +51,9 @@ img {
       );
       if (res.ok) {
         const meta = await res.json();
-        const css = meta?.post_css?.trim();
-        if (css) {
-          savedCSS = css;
+        if (typeof meta?.post_css === "string") {
+          console.log("fetching saved css");
+          savedCSS = meta.post_css;
         } else {
           await fetch(
             `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta`,
@@ -74,7 +74,11 @@ img {
   }
 
   // Still allow overriding from localStorage if present (for onboarding)
-  savedCSS = localStorage.getItem("onboarding-post-css") || savedCSS;
+  const localOverride = localStorage.getItem("onboarding-post-css");
+  if (localOverride) {
+    savedCSS = localOverride;
+    console.log("overriding");
+  }
 
   let layout = "grid";
   let imageCount = 6;
@@ -95,8 +99,8 @@ img {
             I'm a preview of your future posts' style. Tweak the CSS below to change how I look! 
             Don't worry, you can always edit me later too.
           </p>
-          <div id="image-preview-wrapper" style="position: relative; margin-top: 1rem;">
-            <div id="image-preview-container" class="image-preview-container"></div>
+          <div id="image-preview-wrapper" style="position: relative; margin:auto">
+            <div id="image-preview-container" class="image-preview-container" style="margin:0"></div>
             <div id="layout-selector" class="layout-dropdown" style="display: none;">
               <div class="selected-option">Grid</div>
               <div class="dropdown-options">
@@ -137,14 +141,15 @@ img {
 
   const updateStyle = () => {
     const css = editor.getValue();
-    localStorage.setItem("onboarding-post-css", css);
-    let styleEl = document.getElementById("preview-style");
-    if (!styleEl) {
-      styleEl = document.createElement("style");
-      styleEl.id = "preview-style";
-      document.head.appendChild(styleEl);
-    }
+
+    // Remove any previous preview style tag
+    const existing = document.getElementById("preview-style");
+    if (existing) existing.remove();
+
+    const styleEl = document.createElement("style");
+    styleEl.id = "preview-style";
     styleEl.textContent = css;
+    document.head.appendChild(styleEl);
   };
 
   editor.on("change", updateStyle);
@@ -171,6 +176,7 @@ img {
         console.error("Failed to save CSS", await res.text());
       } else {
         console.log("✅ CSS saved to user-meta");
+        localStorage.removeItem("onboarding-post-css");
       }
     } catch (err) {
       console.error("Network error saving CSS", err);

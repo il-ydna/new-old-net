@@ -116,20 +116,9 @@ export async function loadPosts() {
             label.style.alignItems = "center";
             label.style.gap = "0.5rem";
 
-            // const leftDot = document.createElement("span");
-            // leftDot.className = "dot";
-            // leftDot.style.background = tag.color;
-            // leftDot.style.width = "0.75rem";
-            // leftDot.style.height = "0.75rem";
-            // leftDot.style.borderRadius = "50%";
-            // leftDot.style.display = "inline-block";
-
-            // const rightDot = leftDot.cloneNode();
             const text = document.createTextNode(tag.name);
 
-            // label.appendChild(leftDot);
             label.appendChild(text);
-            // label.appendChild(rightDot);
             btn.appendChild(label);
 
             btn.addEventListener("click", () => {

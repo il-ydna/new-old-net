@@ -448,7 +448,7 @@ button:hover {
 
 .grid-layout {
   display: grid;
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
   row-gap: 0rem;
   width: 100%;
 }
@@ -461,20 +461,20 @@ button:hover {
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
 }
 
 .grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
 }
 
 .grid-3.uneven-5 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: auto auto;
-  gap: 0.5rem;
+  /* gap: 0.5rem; */
 }
 
 .grid-3.uneven-5 img:nth-child(1) {
@@ -517,7 +517,7 @@ button:hover {
   aspect-ratio: 1 / 1; /* Try to be square first */
   object-fit: cover;
   margin: 0;
-  /* border-radius: 0.5rem; */
+  border-radius: 0.5rem;
   display: block;
 }
 
