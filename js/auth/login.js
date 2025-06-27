@@ -38,6 +38,7 @@ export default function initLoginForm() {
 
         const payload = JSON.parse(atob(idToken.split(".")[1]));
         const username = payload["cognito:username"];
+        const userId = payload["sub"];
         let newUser = false;
 
         try {
@@ -66,6 +67,8 @@ export default function initLoginForm() {
         } catch (err) {
           console.error("❌ Error checking/creating user profile:", err);
         }
+
+        await migrateUserProjects(userId, idToken);
 
         const returnTo =
           new URLSearchParams(window.location.search).get("returnTo") ||
@@ -128,5 +131,69 @@ async function createUserProfile(idToken) {
     console.log("✅ User profile created:", data.message);
   } else {
     console.warn("⚠️ Failed to create user profile:", res.status);
+  }
+}
+
+async function migrateUserProjects(userId, idToken) {
+  // 1️⃣ Check if projects exist
+  const resProjects = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/projects?userId=${userId}`
+  );
+  const projects = await resProjects.json();
+
+  if (projects.length > 0) {
+    console.log("✅ Projects already exist — no migration needed");
+    return;
+  }
+
+  // 2️⃣ Fetch user-meta
+  const resMeta = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
+    {
+      headers: { Authorization: `Bearer ${idToken}` },
+    }
+  );
+
+  if (!resMeta.ok) {
+    console.warn("❌ Failed to fetch user-meta for migration");
+    return;
+  }
+
+  const meta = await resMeta.json();
+
+  // 3️⃣ Build project payload
+  const payload = {
+    userId: userId,
+    name: "My Page",
+    slug: "default",
+    background_url: meta.background_url || "",
+    tags: meta.tags || [],
+    default_tag: meta.default_tag || "",
+    layout_css: meta.layout_css || "",
+    post_css: meta.post_css || "",
+    default_layout: meta.default_layout || "columns",
+    created_at: Date.now(),
+  };
+
+  // 4️⃣ Create default project
+  const resCreate = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (resCreate.ok) {
+    console.log("✅ Default project created");
+  } else {
+    console.error(
+      "❌ Failed to create default project",
+      await resCreate.text()
+    );
   }
 }

@@ -14,6 +14,7 @@ import {
   getPageOwner,
 } from "./state.js";
 import { applyCombinedCSS } from "./ui.js"; // or wherever it's defined
+import { getCurrentProjectId } from "./state.js";
 
 import { renderUserControls } from "./ui.js";
 
@@ -46,7 +47,7 @@ export async function updateHeader() {
   }
 }
 
-export async function loadPosts() {
+export async function loadPosts({ projectId = null } = {}) {
   const postForm = document.getElementById("postForm");
   const idToken = await getIdToken();
   const currentUser = getCurrentUser();
@@ -58,8 +59,11 @@ export async function loadPosts() {
 
   try {
     const res = await fetch(
-      "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/"
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?projectId=${encodeURIComponent(
+        getCurrentProjectId()
+      )}`
     );
+
     if (!res.ok) throw new Error("Failed to load posts");
 
     const posts = await res.json();
@@ -67,80 +71,75 @@ export async function loadPosts() {
       (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
 
-    const userPosts = pageOwner
+    let userPosts = pageOwner
       ? allPosts.filter((p) => {
           const isOwner = currentUser?.id === pageOwner.id;
           const isPublic = (p.visibility || "private") === "public";
-          return p.pageOwnerId === pageOwner.id && (isOwner || isPublic);
+          const ownerMatch = p.pageOwnerId === pageOwner.id;
+          const projectMatch = projectId ? p.projectId === projectId : true;
+          return ownerMatch && projectMatch && (isOwner || isPublic);
         })
       : allPosts;
 
-    // Apply layout + post CSS from page owner
-    if (pageOwner?.id) {
+    // Apply layout + post CSS from page owner (user-meta or project)
+    if (pageOwner?.project) {
+      applyCombinedCSS(
+        pageOwner.project.layout_css || "",
+        pageOwner.project.post_css || ""
+      );
+    } else if (pageOwner?.id) {
       const metaRes = await fetch(
         `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwner.id}`
       );
       if (metaRes.ok) {
         const meta = await metaRes.json();
         applyCombinedCSS(meta.layout_css || "", meta.post_css || "");
-
-        // ✅ Setup tag filters
-        const tagContainer = document.getElementById("tag-filter-buttons");
-        if (tagContainer) tagContainer.innerHTML = "";
-
-        if (Array.isArray(meta.tags) && meta.tags.length > 0 && tagContainer) {
-          let selectedTagBtn = null;
-
-          const clearBtn = document.createElement("button");
-          clearBtn.textContent = "All";
-          clearBtn.className = "button-style";
-          clearBtn.addEventListener("click", () => {
-            renderPosts(userPosts);
-            if (selectedTagBtn) {
-              selectedTagBtn.style.backgroundColor = "transparent";
-              selectedTagBtn.style.color = "white";
-              const dot = selectedTagBtn.querySelector(".dot");
-              if (dot) dot.style.display = "inline-block";
-              selectedTagBtn = null;
-            }
-          });
-          tagContainer.appendChild(clearBtn);
-
-          meta.tags.forEach((tag) => {
-            const btn = document.createElement("button");
-            btn.className = "button-style";
-            btn.dataset.tag = tag.value;
-
-            const label = document.createElement("span");
-            label.style.display = "flex";
-            label.style.alignItems = "center";
-            label.style.gap = "0.5rem";
-
-            const text = document.createTextNode(tag.name);
-
-            label.appendChild(text);
-            btn.appendChild(label);
-
-            btn.addEventListener("click", () => {
-              const filtered = userPosts.filter((p) => p.tag === tag.value);
-              renderPosts(filtered);
-
-              if (selectedTagBtn) {
-                selectedTagBtn.style.backgroundColor = "rgba(255, 255, 255, 0)";
-                selectedTagBtn.style.color = "white";
-                const dot = selectedTagBtn.querySelector(".dot");
-                if (dot) dot.style.display = "inline-block";
-              }
-
-              btn.style.backgroundColor = tag.color;
-              btn.style.color = tag.textColor || "white";
-              selectedTagBtn = btn;
-            });
-
-            tagContainer.appendChild(btn);
-          });
-        }
       }
+    }
+
+    // ✅ Setup tag filters
+    const tagContainer = document.getElementById("tag-filter-buttons");
+    if (tagContainer) tagContainer.innerHTML = "";
+
+    const tags = pageOwner?.project?.tags || [];
+    if (tags.length > 0 && tagContainer) {
+      let selectedTagBtn = null;
+
+      const clearBtn = document.createElement("button");
+      clearBtn.textContent = "All";
+      clearBtn.className = "button-style";
+      clearBtn.addEventListener("click", () => {
+        renderPosts(userPosts);
+        if (selectedTagBtn) {
+          selectedTagBtn.style.backgroundColor = "transparent";
+          selectedTagBtn.style.color = "white";
+          selectedTagBtn = null;
+        }
+      });
+      tagContainer.appendChild(clearBtn);
+
+      tags.forEach((tag) => {
+        const btn = document.createElement("button");
+        btn.className = "button-style";
+        btn.dataset.tag = tag.value;
+        btn.textContent = tag.name;
+
+        btn.addEventListener("click", () => {
+          const filtered = userPosts.filter((p) => p.tag === tag.value);
+          renderPosts(filtered);
+
+          if (selectedTagBtn) {
+            selectedTagBtn.style.backgroundColor = "transparent";
+            selectedTagBtn.style.color = "white";
+          }
+
+          btn.style.backgroundColor = tag.color;
+          btn.style.color = tag.textColor || "white";
+          selectedTagBtn = btn;
+        });
+
+        tagContainer.appendChild(btn);
+      });
     }
 
     renderPosts(userPosts);
@@ -168,79 +167,82 @@ export function initPostForm() {
   const imageLabel = document.querySelector("#image-drop-zone label");
 
   postForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    removeValidationMessage();
-
-    const editingId = getEditingPostId();
-    const postId = editingId || crypto.randomUUID();
-
-    const titleInput = postForm.querySelector('input[name="title"]');
-    const formData = new FormData(postForm);
-
-    if (!titleInput?.value.trim()) {
-      showValidationMessage("Give a title.");
-      return;
-    }
-
-    const tagValue = formData.get("tag");
-    if (!tagValue) {
-      showValidationMessage("Select a tag.");
-      return;
-    }
-
-    const files = imageInput.files;
-    const layout = formData.get("layout") || "grid";
-    const MAX_IMAGES = {
-      grid: 6,
-      stack: 6,
-      carousel: 6,
-    };
-
-    if (files.length > MAX_IMAGES[layout]) {
-      showValidationMessage(
-        `${
-          layout.charAt(0).toUpperCase() + layout.slice(1)
-        } layout supports up to ${MAX_IMAGES[layout]} images.`
-      );
-      return;
-    }
-
-    const imageUrls = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const url = await uploadImageToS3(files[i], postId, i);
-      imageUrls.push(url);
-    }
-
-    const { id: currentUserId, username: currentUsername } =
-      getCurrentUser() || {};
-    const pageOwnerId = getPageOwner()?.id || currentUserId;
-
-    const newPost = {
-      id: postId,
-      title: formData.get("title"),
-      content: formData.get("content"),
-      images: imageUrls,
-      tag: formData.get("tag") || "general",
-      visibility: formData.get("visibility") || "public",
-      layout: formData.get("layout") || "grid",
-      timestamp: Date.now(),
-      username: currentUsername,
-      userId: currentUserId,
-      pageOwnerId,
-    };
-
-    if (currentUserId !== pageOwnerId) {
-      newPost.tag = "guest";
-    }
-
-    const idToken = await getIdToken();
-    if (!idToken) {
-      showValidationMessage("Please log in to submit posts.");
-      return;
-    }
-
+    const submitBtn = document.getElementById("submitPostBtn");
+    submitBtn.disabled = true;
     try {
+      e.preventDefault();
+      removeValidationMessage();
+
+      const editingId = getEditingPostId();
+      const postId = editingId || crypto.randomUUID();
+
+      const titleInput = postForm.querySelector('input[name="title"]');
+      const formData = new FormData(postForm);
+
+      if (!titleInput?.value.trim()) {
+        showValidationMessage("Give a title.");
+        return;
+      }
+
+      const tagValue = formData.get("tag");
+      if (!tagValue) {
+        showValidationMessage("Select a tag.");
+        return;
+      }
+
+      const files = imageInput.files;
+      const layout = formData.get("layout") || "grid";
+      const MAX_IMAGES = {
+        grid: 6,
+        stack: 6,
+        carousel: 6,
+      };
+
+      if (files.length > MAX_IMAGES[layout]) {
+        showValidationMessage(
+          `${
+            layout.charAt(0).toUpperCase() + layout.slice(1)
+          } layout supports up to ${MAX_IMAGES[layout]} images.`
+        );
+        return;
+      }
+
+      const imageUrls = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadImageToS3(files[i], postId, i);
+        imageUrls.push(url);
+      }
+
+      const { id: currentUserId, username: currentUsername } =
+        getCurrentUser() || {};
+      const pageOwnerId = getPageOwner()?.id || currentUserId;
+
+      const newPost = {
+        id: postId,
+        title: formData.get("title"),
+        content: formData.get("content"),
+        images: imageUrls,
+        tag: formData.get("tag") || "general",
+        visibility: formData.get("visibility") || "public",
+        layout: formData.get("layout") || "grid",
+        timestamp: Date.now(),
+        username: currentUsername,
+        userId: currentUserId,
+        projectId: getCurrentProjectId(),
+        pageOwnerId,
+      };
+
+      if (currentUserId !== pageOwnerId) {
+        newPost.tag = "guest";
+      }
+
+      const idToken = await getIdToken();
+      if (!idToken) {
+        showValidationMessage("Please log in to submit posts.");
+        return;
+      }
+
       const response = await fetch(
         "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/",
         {
@@ -268,13 +270,15 @@ export function initPostForm() {
       imageLabel.textContent = "Choose/Drop Image";
       imageInput.value = "";
 
-      loadPosts();
+      await loadPosts({ projectId: getCurrentProjectId() });
 
-      document.getElementById("submitPostBtn").textContent = "Post";
       postForm.classList.remove("editing");
       document.getElementById("cancelEditBtn").style.display = "none";
-    } catch (error) {
+    } catch (err) {
       showValidationMessage("Network error. Try again.");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post";
     }
   });
 }

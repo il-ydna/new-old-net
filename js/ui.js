@@ -1,4 +1,5 @@
 import { getCurrentUser } from "./state.js";
+import { getPageOwner } from "./state.js";
 
 // Show validation error below the post form
 export function showValidationMessage(message) {
@@ -183,13 +184,20 @@ export function createEditPageButton(username) {
 
   editBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    history.pushState({}, "", `/@${username}/edit`);
+    const pageOwner = getPageOwner();
+    const project = pageOwner?.project;
+
+    if (project?.slug) {
+      history.pushState({}, "", `/@${username}/project/${project.slug}/edit`);
+    } else {
+      history.pushState({}, "", `/@${username}/edit`);
+    }
+
     window.dispatchEvent(new Event("popstate"));
   });
 
   return editBtn;
 }
-
 export function applyUserBackground(url) {
   const root = document.documentElement;
   if (!url) return;

@@ -1,8 +1,8 @@
 import { renderStyleTab } from "./views/editPostView.js";
 import { renderBackgroundTab } from "./views/editPageView.js";
-import { renderProjectTab } from "./views/editProjectView.js";
+import { renderTagTab } from "./views/editTagView.js";
 import { updateHeader } from "./posts.js";
-import { getCurrentUser } from "./state.js";
+import { getCurrentUser, getPageOwner } from "./state.js";
 import { fetchUserMeta } from "./auth.js";
 
 export async function renderEditPage(username) {
@@ -13,50 +13,47 @@ export async function renderEditPage(username) {
     currentUser = await fetchUserMeta();
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const userId = params.get("id") || currentUser?.id;
+  const pageOwner = getPageOwner();
+  const project = pageOwner?.project;
 
-  // check if user is indeed the owner
-  if (!currentUser || userId !== currentUser.id) {
+  if (!currentUser || pageOwner?.id !== currentUser.id) {
     history.replaceState({}, "", `/@${currentUser?.username || "me"}`);
     window.dispatchEvent(new Event("popstate"));
     return;
   }
 
   app.innerHTML = `
-<div class="tab-bar" style="
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 48px;
-  width: 600px;
-  margin: 0 auto 1rem auto;
-  padding: 0 1rem;
-">
-  <div style="display: flex; gap: 0.5rem;">
-    <button id="backToPageBtn">← Back</button>
-    <button class="tab-button selected" data-tab="page">Posts</button>
-    <button class="tab-button" data-tab="layout">Layout</button>
-    <button class="tab-button" data-tab="projects">Projects</button>
+  <div class="tab-bar" style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 48px;
+    width: 600px;
+    margin: 0 auto 1rem auto;
+    padding: 0 1rem;
+  ">
+    <div style="display: flex; gap: 0.5rem;">
+      <button id="backToPageBtn">← Back</button>
+      <button class="tab-button selected" data-tab="page">Posts</button>
+      <button class="tab-button" data-tab="layout">Layout</button>
+      <button class="tab-button" data-tab="projects">Tags</button>
+    </div>
+    <div id="user-controls"></div>
   </div>
-  <div id="user-controls"></div>
-</div>
 
-<div id="tab-content" style="margin-top: 64px;"></div>
-
-
+  <div id="tab-content" style="margin-top: 64px;"></div>
   `;
 
   const tabContent = document.getElementById("tab-content");
 
   async function renderTab(tab) {
-    tabContent.innerHTML = ""; // clear previous content
+    tabContent.innerHTML = "";
     if (tab === "page") {
-      await renderStyleTab(tabContent); // Pass container
+      await renderStyleTab(tabContent);
     } else if (tab === "layout") {
-      await renderBackgroundTab(tabContent); // Pass container
+      await renderBackgroundTab(tabContent);
     } else if (tab === "projects") {
-      await renderProjectTab(tabContent); // Pass container
+      await renderTagTab(tabContent);
     }
 
     document.querySelectorAll(".tab-button").forEach((btn) => {
@@ -73,37 +70,33 @@ export async function renderEditPage(username) {
   });
 
   document.getElementById("backToPageBtn").addEventListener("click", () => {
-    const username = getCurrentUser()?.username || "me";
-    history.pushState({}, "", `/@${username}`);
+    const u = currentUser?.username || "me";
+    if (project?.slug) {
+      history.pushState({}, "", `/@${u}/project/${project.slug}`);
+    } else {
+      history.pushState({}, "", `/@${u}`);
+    }
     window.dispatchEvent(new Event("popstate"));
   });
 
-  if (userId) {
-    fetch(
-      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`
-    )
-      .then((res) => res.json())
-      .then((meta) => {
-        const bg = meta?.background_url;
-        if (bg) {
-          const timestamped = `${bg}?t=${Date.now()}`;
-          document.documentElement.style.backgroundImage = `url('${timestamped}')`;
-          document.documentElement.style.backgroundSize = "cover";
-          document.documentElement.style.backgroundRepeat = "no-repeat";
-          document.documentElement.style.backgroundPosition = "center center";
-          document.documentElement.style.backgroundAttachment = "fixed";
+  // Set background
+  const bgUrl = project?.background_url || pageOwner?.background_url;
+  if (bgUrl) {
+    const timestamped = `${bgUrl}?t=${Date.now()}`;
+    document.documentElement.style.backgroundImage = `url('${timestamped}')`;
+    document.documentElement.style.backgroundSize = "cover";
+    document.documentElement.style.backgroundRepeat = "no-repeat";
+    document.documentElement.style.backgroundPosition = "center center";
+    document.documentElement.style.backgroundAttachment = "fixed";
 
-          const previewEl = document.getElementById("theme-preview-wrapper");
-          if (previewEl) {
-            previewEl.style.backgroundImage = `url('${timestamped}')`;
-            previewEl.style.backgroundSize = "cover";
-            previewEl.style.backgroundRepeat = "no-repeat";
-            previewEl.style.backgroundPosition = "center center";
-            previewEl.style.backgroundAttachment = "fixed";
-          }
-        }
-      })
-      .catch((err) => console.warn("❌ Failed to fetch background_url:", err));
+    const previewEl = document.getElementById("theme-preview-wrapper");
+    if (previewEl) {
+      previewEl.style.backgroundImage = `url('${timestamped}')`;
+      previewEl.style.backgroundSize = "cover";
+      previewEl.style.backgroundRepeat = "no-repeat";
+      previewEl.style.backgroundPosition = "center center";
+      previewEl.style.backgroundAttachment = "fixed";
+    }
   }
 
   updateHeader();

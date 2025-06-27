@@ -1,6 +1,10 @@
 import { getIdToken } from "./auth.js";
 import { loadPosts } from "./posts.js";
-import { setEditingPostId, getCurrentUser } from "./state.js";
+import {
+  setEditingPostId,
+  getCurrentUser,
+  getCurrentProjectId,
+} from "./state.js";
 
 export function renderGrid(images) {
   const count = images.length;
@@ -205,7 +209,7 @@ window.deletePost = async function (id) {
 
     if (!response.ok) throw new Error("Delete failed");
 
-    loadPosts();
+    await loadPosts({ projectId: getCurrentProjectId() });
   } catch (err) {
     alert("Failed to delete post.");
     console.error(err);

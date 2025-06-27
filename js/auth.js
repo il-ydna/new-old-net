@@ -47,6 +47,14 @@ export async function getUsernameFromToken() {
   return idToken ? parseJwt(idToken)?.["cognito:username"] || null : null;
 }
 
+export async function getUserMetaByUsername(username) {
+  const res = await fetch(
+    `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?username=${username}`
+  );
+  if (!res.ok) return null;
+  return await res.json();
+}
+
 function parseJwt(token) {
   try {
     const base64Url = token.split(".")[1];

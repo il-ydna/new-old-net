@@ -32,3 +32,7 @@ export function getStagedBackgroundURL() {
 export function setStagedBackgroundURL(url) {
   stagedBackgroundURL = url;
 }
+
+export function getCurrentProjectId() {
+  return pageOwner?.project?.id || null;
+}

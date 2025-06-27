@@ -1,14 +1,14 @@
-import { loadPosts } from "./posts.js";
+import { loadPosts } from "../posts.js";
 import {
   setupPostLayoutToggle,
   createEditPageButton,
   setupTagDropdown,
   renderTagDropdown,
   renderShareDropdown,
-} from "./ui.js";
-import { updateHeader } from "./posts.js";
-import { getCurrentUser, setPageOwner, getPageOwner } from "./state.js";
-import { applyUserBackground } from "./ui.js";
+} from "../ui.js";
+import { updateHeader } from "../posts.js";
+import { getCurrentUser, setPageOwner } from "../state.js";
+import { applyUserBackground } from "../ui.js";
 export function renderPostFormHTML() {
   return `
       <section>
@@ -58,7 +58,7 @@ export function renderPostFormHTML() {
     `;
 }
 
-export async function renderUserPage(username) {
+export async function renderProjectPage(username, slug) {
   document.body.classList.remove("edit-mode");
   const app = document.getElementById("app");
 
@@ -87,64 +87,68 @@ export async function renderUserPage(username) {
     await updateHeader();
     setupPostLayoutToggle();
 
-    const res = await fetch(
+    // Fetch userMeta to get userId
+    const resMeta = await fetch(
       `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?username=${username}`
     );
-    const userMeta = await res.json();
+    const userMeta = await resMeta.json();
     if (!userMeta?.id) throw new Error("User not found");
 
-    setPageOwner({ id: userMeta.id, ...userMeta });
+    // Fetch projects
+    const resProjects = await fetch(
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/projects?userId=${userMeta.id}`
+    );
+    const projects = await resProjects.json();
+    const project = projects.find((p) => p.slug === slug);
+
+    if (!project) {
+      app.innerHTML = `<h1>Project not found</h1>`;
+      return;
+    }
+
+    setPageOwner({ id: userMeta.id, username, project });
 
     const layout =
-      userMeta.default_layout === "columns"
+      project.default_layout === "columns"
         ? "layout-columns"
         : "layout-timeline";
     const postsSection = document.getElementById("posts");
     postsSection.className = layout;
 
-    if (userMeta.background_url) {
-      applyUserBackground(userMeta.background_url);
+    if (project.background_url) {
+      applyUserBackground(project.background_url);
     }
 
     // Apply custom CSS
-    if (userMeta.post_css) {
+    if (project.post_css) {
       const existing = document.getElementById("user-custom-style");
       if (existing) existing.remove();
 
       const style = document.createElement("style");
       style.id = "user-custom-style";
-      style.textContent = userMeta.post_css;
+      style.textContent = project.post_css;
       document.head.appendChild(style);
     }
 
     // Apply layout_css (e.g. columns, theme vars, etc.)
-    if (userMeta.layout_css) {
+    if (project.layout_css) {
       let themeEl = document.getElementById("theme-style");
       if (!themeEl) {
         themeEl = document.createElement("style");
         themeEl.id = "theme-style";
         document.head.appendChild(themeEl);
       }
-      themeEl.textContent = userMeta.layout_css;
+      themeEl.textContent = project.layout_css;
     }
 
-    // Apply background
-    if (userMeta.background_url) {
-      const root = document.documentElement;
-      root.style.backgroundImage = `url('${userMeta.background_url}')`;
-      root.style.backgroundSize = "cover";
-      root.style.backgroundAttachment = "fixed";
-      root.style.backgroundRepeat = "no-repeat";
-      root.style.backgroundPosition = "center";
-    }
     const tagWrapper = document.getElementById("tag-dropdown-wrapper");
 
-    if (tagWrapper && Array.isArray(userMeta.tags)) {
-      const dropdown = renderTagDropdown(userMeta.tags);
+    if (tagWrapper && Array.isArray(project.tags)) {
+      const dropdown = renderTagDropdown(project.tags);
       tagWrapper.appendChild(dropdown);
       setupTagDropdown();
 
-      const defaultTag = userMeta.default_tag;
+      const defaultTag = project.default_tag;
       const tagInput = dropdown.querySelector('input[name="tag"]');
       const selectedDisplay = dropdown.querySelector(".selected-option");
 
@@ -179,72 +183,20 @@ export async function renderUserPage(username) {
       document.getElementById("owner-controls").style.display = "block";
 
       const header = document.querySelector("header");
-      const editBtn = createEditPageButton(userMeta.username);
+      const editBtn = createEditPageButton(username);
       header.appendChild(editBtn);
 
       await new Promise((r) => requestAnimationFrame(r));
-      const { default: initMain } = await import("./main.js");
+      const { default: initMain } = await import("../main.js");
       initMain();
     }
 
-    // Add Follow / Following button if logged in and viewing someone else's page
-    const currentUser = getCurrentUser();
-    if (currentUser?.id && currentUser.id !== userMeta.id) {
-      const header = document.querySelector("header");
-
-      const followBtn = document.createElement("button");
-      followBtn.id = "followToggleBtn";
-      followBtn.textContent = "Follow";
-      followBtn.className = "button-style";
-
-      // Fetch follow state
-      const token = await getIdToken();
-      const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/following",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.ok) {
-        const { following } = await res.json();
-        if (following.includes(userMeta.id)) {
-          followBtn.textContent = "Following";
-        }
-      }
-
-      followBtn.addEventListener("click", async () => {
-        const token = await getIdToken();
-        const result = await fetch(
-          "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/follow",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ followed_id: userMeta.id }),
-          }
-        );
-
-        if (result.ok) {
-          const { status } = await result.json();
-          followBtn.textContent =
-            status === "followed" ? "Following" : "Follow";
-        }
-      });
-
-      header.appendChild(followBtn);
-    }
-
-    await loadPosts();
+    await loadPosts({ projectId: project.id });
   } catch (err) {
     app.innerHTML = `<p style="text-align:center; color:red;">Failed to load page for @${username}</p>`;
     console.error(err);
   }
 }
-
-import { getIdToken } from "./auth.js";
 
 export async function getUserMetaByUsername(username) {
   const res = await fetch(

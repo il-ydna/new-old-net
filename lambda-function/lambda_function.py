@@ -23,6 +23,7 @@ dynamodb = boto3.resource("dynamodb")
 posts_table = dynamodb.Table(os.environ['POSTS_TABLE_NAME'])
 users_table = dynamodb.Table(os.environ['USERS_TABLE_NAME'])
 follows_table = dynamodb.Table(os.environ['FOLLOWS_TABLE_NAME'])
+projects_table = dynamodb.Table(os.environ['PROJECTS_TABLE_NAME'])
 
 
 # Helpers
@@ -117,6 +118,26 @@ def lambda_handler(event, context):
         if method == "GET":
             return handle_get_following(event)
         return cors_response(405, {"error": "Method Not Allowed"})
+    
+    if path == "/project":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "POST":
+            return handle_project_post(event)
+        if method == "GET":
+            return handle_project_get(event)
+        if method == "PUT":
+            return handle_project_put(event)
+        if method == "DELETE":
+            return handle_project_delete(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
+
+    if path == "/projects":
+        if method == "OPTIONS":
+            return handle_options(event)
+        if method == "GET":
+            return handle_projects_list(event)
+        return cors_response(405, {"error": "Method Not Allowed"})
 
 
     return cors_response(404, {"message": "Not Found"})
@@ -127,11 +148,29 @@ def handle_options(event):
 
 def handle_get(event):
     try:
-        resp = posts_table.scan()
-        items = decimal_to_native(resp.get("Items", []))
-        return cors_response(200, items)
+        qs = event.get("queryStringParameters") or {}
+        project_id = qs.get("projectId")
+
+        if project_id:
+            # Query using the GSI
+            resp = posts_table.query(
+                IndexName="projectId-index",
+                KeyConditionExpression=Key("projectId").eq(project_id)
+            )
+            items = decimal_to_native(resp.get("Items", []))
+            return cors_response(200, items)
+        else:
+            # Fallback: return all posts (or consider limiting this)
+            resp = posts_table.scan()
+            items = decimal_to_native(resp.get("Items", []))
+            return cors_response(200, items)
+
     except Exception as e:
-        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
     
 def handle_get_post_by_id(event):
     try:
@@ -205,7 +244,8 @@ def handle_post(event):
             "timestamp": body.get("timestamp"),
             "images": body.get("images", []),
             "layout": body.get("layout", "grid"),
-            "pageOwnerId": body.get("pageOwnerId", user_sub)
+            "pageOwnerId": body.get("pageOwnerId", user_sub),
+            "projectId": body.get("projectId")
         }
 
         posts_table.put_item(Item=post_item)
@@ -267,7 +307,7 @@ def handle_put(event):
                 except:
                     pass
 
-        allowed_fields = ["title", "content", "tag", "images", "layout", "timestamp"]
+        allowed_fields = ["title", "content", "tag", "images", "layout", "timestamp", "projectId"]
         updated_data = {k: body.get(k) for k in allowed_fields}
         updated_data.update({
             "id": post_id,
@@ -422,6 +462,163 @@ def handle_get_following(event):
         return cors_response(200, {"following": followed_ids})
     except Exception as e:
         return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+    
+
+def handle_project_post(event):
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+        body = json.loads(event.get("body", "{}"))
+        
+        project_id = str(uuid.uuid4())
+        item = {
+            "id": project_id,
+            "userId": user_id,
+            "name": body.get("name"),
+            "slug": body.get("slug"),
+            "background_url": body.get("background_url", ""),
+            "tags": body.get("tags", []),
+            "default_tag": body.get("default_tag", ""),
+            "layout_css": body.get("layout_css", ""),
+            "post_css": body.get("post_css", ""),
+            "default_layout": body.get("default_layout", "columns"),
+            "created_at": int(time.time() * 1000)
+        }
+        
+        projects_table.put_item(Item=item)
+        return cors_response(200, {"message": "Project created", "id": project_id})
+    except Exception as e:
+        return cors_response(500, {"error": str(e), "traceback": traceback.format_exc()})
+    
+def handle_project_get(event):
+    try:
+        qs = event.get("queryStringParameters") or {}
+        project_id = qs.get("id")
+        
+        if not project_id:
+            return cors_response(400, {"error": "Missing project ID"})
+
+        resp = projects_table.get_item(Key={"id": project_id})
+        item = resp.get("Item")
+
+        if not item:
+            return cors_response(404, {"error": "Project not found"})
+
+        return cors_response(200, decimal_to_native(item))
+
+    except Exception as e:
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
+def handle_projects_list(event):
+    try:
+        qs = event.get("queryStringParameters") or {}
+        user_id = qs.get("userId")
+
+        if not user_id:
+            return cors_response(400, {"error": "Missing userId"})
+
+        resp = projects_table.query(
+            IndexName="userId-index",
+            KeyConditionExpression=Key("userId").eq(user_id)
+        )
+        items = resp.get("Items", [])
+
+        return cors_response(200, decimal_to_native(items))
+
+    except Exception as e:
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
+def handle_project_put(event):
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+
+        body = json.loads(event.get("body", "{}"))
+        project_id = body.get("id")
+
+        if not project_id:
+            return cors_response(400, {"error": "Missing project ID"})
+
+        # Get existing project
+        resp = projects_table.get_item(Key={"id": project_id})
+        item = resp.get("Item")
+
+        if not item:
+            return cors_response(404, {"error": "Project not found"})
+
+        if item.get("userId") != user_id:
+            return cors_response(403, {"error": "Not authorized"})
+
+        # Fields allowed to update
+        allowed_fields = [
+            "name", "slug", "background_url", "tags", "default_tag",
+            "layout_css", "post_css", "default_layout"
+        ]
+        update_fields = {k: v for k, v in body.items() if k in allowed_fields}
+
+        if not update_fields:
+            return cors_response(400, {"error": "No valid fields to update"})
+
+        # Build update expression
+        update_expr = "SET " + ", ".join(f"#{k} = :{k}" for k in update_fields)
+        expr_names = {f"#{k}": k for k in update_fields}
+        expr_values = {f":{k}": v for k, v in update_fields.items()}
+
+        projects_table.update_item(
+            Key={"id": project_id},
+            UpdateExpression=update_expr,
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values
+        )
+
+        return cors_response(200, {"message": "Project updated"})
+
+    except Exception as e:
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+    
+def handle_project_delete(event):
+    #TODO: delete related posts/images
+    try:
+        claims = get_user_claims(event)
+        user_id = claims.get("sub")
+
+        qs = event.get("queryStringParameters") or {}
+        project_id = qs.get("id")
+
+        if not project_id:
+            return cors_response(400, {"error": "Missing project ID"})
+
+        # Fetch the project to check ownership
+        resp = projects_table.get_item(Key={"id": project_id})
+        item = resp.get("Item")
+
+        if not item:
+            return cors_response(404, {"error": "Project not found"})
+
+        if item.get("userId") != user_id:
+            return cors_response(403, {"error": "Not authorized"})
+
+        # Delete the project
+        projects_table.delete_item(Key={"id": project_id})
+
+        return cors_response(200, {"message": f"Project {project_id} deleted"})
+
+    except Exception as e:
+        return cors_response(500, {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
+
 
 
 

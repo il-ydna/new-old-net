@@ -1,6 +1,6 @@
 import { setupOnboardingLayoutToggle } from "../ui.js";
-import { getUserIdFromToken } from "../auth.js";
 import { getIdToken } from "../auth.js";
+import { getPageOwner } from "../state.js";
 
 export async function renderStyleTab(
   container = document.getElementById("app")
@@ -38,39 +38,26 @@ img {
 
   let savedCSS = defaultCSS;
 
-  try {
-    const token = await getIdToken();
-    const userId = await getUserIdFromToken();
-
-    if (token && userId) {
+  const pageOwner = getPageOwner();
+  if (pageOwner?.project?.id) {
+    try {
+      const token = await getIdToken();
       const res = await fetch(
-        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project?id=${pageOwner.project.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.ok) {
-        const meta = await res.json();
-        if (typeof meta?.post_css === "string") {
+        const project = await res.json();
+        if (typeof project?.post_css === "string") {
           console.log("fetching saved css");
-          savedCSS = meta.post_css;
-        } else {
-          await fetch(
-            `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ post_css: defaultCSS }),
-            }
-          );
+          savedCSS = project.post_css;
         }
       }
+    } catch (err) {
+      console.warn("Could not fetch project CSS, falling back to default", err);
     }
-  } catch (err) {
-    console.warn("Could not fetch user CSS, falling back to default", err);
+  } else {
+    console.warn("No project selected.");
   }
 
   // Still allow overriding from localStorage if present (for onboarding)
@@ -162,20 +149,23 @@ img {
 
     try {
       const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project",
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ post_css: css }),
+          body: JSON.stringify({
+            id: pageOwner.project.id,
+            post_css: css,
+          }),
         }
       );
       if (!res.ok) {
         console.error("Failed to save CSS", await res.text());
       } else {
-        console.log("✅ CSS saved to user-meta");
+        console.log("✅ CSS saved to projects");
         localStorage.removeItem("onboarding-post-css");
       }
     } catch (err) {

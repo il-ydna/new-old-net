@@ -1,5 +1,4 @@
 import { getIdToken } from "../auth.js";
-import { getUserIdFromToken } from "../auth.js";
 import { applyUserBackground } from "../ui.js";
 import { getPageOwner } from "../state.js";
 let currentBackgroundURL = null;
@@ -26,41 +25,6 @@ export async function renderBackgroundTab(
 `;
 
   let savedTheme = defaultThemeCSS;
-
-  try {
-    const token = await getIdToken();
-    const userId = await getUserIdFromToken();
-
-    if (token && userId) {
-      const res = await fetch(
-        `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${userId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.ok) {
-        const meta = await res.json();
-        const css = meta?.post_css?.trim();
-        if (css) {
-          savedTheme = css;
-        } else {
-          await fetch(
-            `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ post_css: defaultCSS }),
-            }
-          );
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Could not fetch user CSS, falling back to default", err);
-  }
 
   // Allow onboarding override
   savedTheme = localStorage.getItem("onboarding-theme-css") || savedTheme;
@@ -199,11 +163,15 @@ export async function renderBackgroundTab(
   const layoutSelect = document.getElementById("layoutSelect");
   const postsEl = document.getElementById("posts");
 
-  // ✅ Apply saved default layout from user-meta via query param
+  // ✅ Apply saved default layout
   const pageOwner = getPageOwner();
+  if (!pageOwner?.project?.id) {
+    console.warn("No project selected.");
+    return;
+  }
   if (pageOwner?.id) {
     fetch(
-      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwner.id}`
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project?id=${pageOwner.project.id}`
     )
       .then((res) => res.json())
       .then((meta) => {
@@ -253,6 +221,7 @@ export async function renderBackgroundTab(
 
     try {
       const payload = {
+        id: pageOwner.project.id,
         layout_css: editor.getValue(),
         default_layout: layoutSelect.value,
         background_url: cleanURL,
@@ -261,7 +230,7 @@ export async function renderBackgroundTab(
       console.log("Saved background_url:", currentBackgroundURL);
 
       const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project",
         {
           method: "PUT",
           headers: {

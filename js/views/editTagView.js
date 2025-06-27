@@ -1,9 +1,7 @@
 import { getIdToken } from "../auth.js";
-import { getUserIdFromToken } from "../auth.js";
 import { applyUserBackground } from "../ui.js";
 import { getPageOwner } from "../state.js";
 import { compressImage } from "../upload.js";
-import { fetchUserMeta } from "../auth.js";
 import {
   loadImageAndExtractPalette,
   renderColorSuggestions,
@@ -11,49 +9,42 @@ import {
 
 let currentBackgroundURL = null;
 
-export async function renderProjectTab(
-  container = document.getElementById("app")
-) {
-  const meta = fetchUserMeta;
-
+export async function renderTagTab(container = document.getElementById("app")) {
   container.innerHTML = `
-    <main>
+      <main>
         <div class="editor-panel" style="background-color: rgba(0,0,0,0.4); padding: 1rem; border-radius: 1rem; margin-top: 2rem;">
-            <div class="preview-wrapper">
+          <div class="preview-wrapper">
             <div id="bgPreview" class="bg-preview" tabindex="0">
-                <input type="file" id="bgFileInput" accept="image/*" hidden />
-                <label for="bgFileInput" class="drop-label">Choose/Drop Image</label>
+              <input type="file" id="bgFileInput" accept="image/*" hidden />
+              <label for="bgFileInput" class="drop-label">Choose/Drop Image</label>
             </div>
             <button id="removeBgBtn" type="button" class="remove-btn">Clear</button>
             <div id="uploadProgressBar" class="progress-bar">
-                <div class="bar-fill"></div>
+              <div class="bar-fill"></div>
             </div>
-            </div>
+          </div>
 
-            <h3>Customize Tags</h3>
-            <div style="display: flex; flex-direction: column; align-items: center;">
+          <h3>Customize Tags</h3>
+          <div style="display: flex; flex-direction: column; align-items: center;">
             <div class="palette-picker" id="colorSuggestions" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;"></div>
-            </div>
-            <div
-            id="customTagsContainer"
-            style="flex: 1; max-height: 300px; overflow-y: auto; margin: 1rem;"
-            ></div>  
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+          </div>
+          <div id="customTagsContainer" style="flex: 1; max-height: 300px; overflow-y: auto; margin: 1rem;"></div>
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
             <button type="button" id="addTagBtn" class="add-tag-button">Add Tag</button>
-            </div>
+          </div>
+        </div> <!-- ✅ closes .editor-panel -->
+
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between;">
+          <button id="saveButton">Save</button>
         </div>
-      </div>
-      <div style="margin-top: 1rem; display: flex; justify-content: space-between;">
-        <button id="saveButton">Save</button>
-      </div>
-    </main>
+      </main>
+
   `;
-  const layoutSelect = document.getElementById("layoutSelect");
 
   const pageOwner = getPageOwner();
-  if (pageOwner?.id) {
+  if (pageOwner?.project?.id) {
     fetch(
-      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta?id=${pageOwner.id}`
+      `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project?id=${pageOwner.project.id}`
     )
       .then((res) => res.json())
       .then((meta) => {
@@ -123,8 +114,7 @@ export async function renderProjectTab(
 
     const compressedFile = await compressImage(file);
 
-    const userId = await getUserIdFromToken();
-    const stagedKey = `bg_${userId}_staged`;
+    const stagedKey = `bg_${pageOwner.project.id}_staged`;
 
     const presignRes = await fetch(
       `https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/?presign&post_id=${stagedKey}&index=0`,
@@ -238,6 +228,7 @@ export async function renderProjectTab(
 
     try {
       const payload = {
+        id: pageOwner.project.id,
         background_url: cleanURL,
         tags,
         default_tag: defaultTagValue || "",
@@ -246,7 +237,7 @@ export async function renderProjectTab(
       console.log("Saved background_url:", currentBackgroundURL);
 
       const res = await fetch(
-        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/user-meta",
+        "https://6bm2adpxck.execute-api.us-east-2.amazonaws.com/project",
         {
           method: "PUT",
           headers: {
