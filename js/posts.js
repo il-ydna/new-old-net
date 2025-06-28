@@ -111,7 +111,8 @@ export async function loadPosts({ projectId = null } = {}) {
       clearBtn.addEventListener("click", () => {
         renderPosts(userPosts);
         if (selectedTagBtn) {
-          selectedTagBtn.style.backgroundColor = "transparent";
+          const prevTagColor = selectedTagBtn.dataset.tagColor;
+          selectedTagBtn.style.backgroundColor = hexToRgba(prevTagColor, 0.5);
           selectedTagBtn.style.color = "white";
           selectedTagBtn = null;
         }
@@ -122,14 +123,20 @@ export async function loadPosts({ projectId = null } = {}) {
         const btn = document.createElement("button");
         btn.className = "button-style";
         btn.dataset.tag = tag.value;
+        btn.dataset.tagColor = tag.color;
         btn.textContent = tag.name;
+
+        // Default: translucent version of their color
+        btn.style.backgroundColor = hexToRgba(tag.color, 0.6);
+        btn.style.color = tag.textColor || "white";
 
         btn.addEventListener("click", () => {
           const filtered = userPosts.filter((p) => p.tag === tag.value);
           renderPosts(filtered);
 
           if (selectedTagBtn) {
-            selectedTagBtn.style.backgroundColor = "transparent";
+            const prevTagColor = selectedTagBtn.dataset.tagColor;
+            selectedTagBtn.style.backgroundColor = hexToRgba(prevTagColor, 0.6);
             selectedTagBtn.style.color = "white";
           }
 
@@ -281,4 +288,22 @@ export function initPostForm() {
       submitBtn.textContent = "Post";
     }
   });
+}
+
+function hexToRgba(hex, alpha = 0.5) {
+  let r = 0,
+    g = 0,
+    b = 0;
+
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+
+  return `rgba(${r},${g},${b},${alpha})`;
 }
