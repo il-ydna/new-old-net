@@ -8,7 +8,8 @@ import {
 } from "../ui.js";
 import { updateHeader } from "../posts.js";
 import { getCurrentUser, setPageOwner } from "../state.js";
-import { applyUserBackground } from "../ui.js";
+import { applyUserBackground, renderTieInDropdown } from "../ui.js";
+import { tieInModules } from "../tieins/index.js";
 export function renderPostFormHTML() {
   return `
       <section>
@@ -34,10 +35,18 @@ export function renderPostFormHTML() {
               <div id="share-dropdown-wrapper"></div>
             </div>
             <div style="display: flex; margin-top: 1rem;">
+              <div id="tie-in-wrapper">
+                <div id="tie-in-dropdown-wrapper"></div>
+                <div id="tie-in-list"></div>
+              </div>
               <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
               <button type="submit" id="submitPostBtn" style="margin-left: auto;">Post</button>
             </div>
             <div id="form-error" class="form-error" style="color: red; margin-top: 1rem; display: none; text-align: center"></div>
+
+            
+            <input type="hidden" name="apiTieIns" id="apiTieInsInput" />
+
 
             <div id="image-preview-container" class="image-preview-container">
               <div id="layout-selector" class="layout-dropdown" style="display: none;">
@@ -189,6 +198,22 @@ export async function renderProjectPage(username, slug) {
       await new Promise((r) => requestAnimationFrame(r));
       const { default: initMain } = await import("../main.js");
       initMain();
+    }
+
+    const tieInWrapper = document.getElementById("tie-in-dropdown-wrapper");
+    if (tieInWrapper) {
+      const dropdown = renderTieInDropdown(["weather", "eta"]);
+      tieInWrapper.appendChild(dropdown);
+
+      dropdown.querySelectorAll(".dropdown-option").forEach((opt) => {
+        opt.addEventListener("click", () => {
+          const type = opt.dataset.value;
+          const row = tieInModules[type].renderInputRow();
+          row.dataset.type = type;
+          document.getElementById("tie-in-list").appendChild(row);
+          window.updateTieInHiddenInput();
+        });
+      });
     }
 
     await loadPosts({ projectId: project.id });

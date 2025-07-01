@@ -6,6 +6,23 @@ import {
   getCurrentProjectId,
 } from "./state.js";
 
+import { tieInModules } from "./tieins/index.js";
+
+async function runTieIn(tieIn) {
+  const mod = tieInModules[tieIn.type];
+  console.log(tieIn);
+  if (!mod || typeof mod.getResult !== "function") {
+    console.warn(`❌ Unknown tie-in type: ${tieIn.type}`);
+    return "⚠ Unsupported tie-in type";
+  }
+  try {
+    return await mod.getResult(tieIn);
+  } catch (err) {
+    console.error(`❌ Error running tie-in ${tieIn.type}:`, err);
+    return "⚠ Failed to load tie-in data";
+  }
+}
+
 export function renderGrid(images) {
   const count = images.length;
 
@@ -161,12 +178,26 @@ export function renderPosts(posts, userCSSMap = {}) {
       </div>
     `;
 
+    if (Array.isArray(post.apiTieIns) && post.apiTieIns.length > 0) {
+      const tieInContainer = document.createElement("div");
+      tieInContainer.className = "tie-in-results";
+      tieInContainer.style = "margin-top:0.5rem; font-size:0.9rem; color:gray;";
+
+      post.apiTieIns.forEach((tieIn) => {
+        const tieInRow = document.createElement("div");
+        tieInRow.textContent = `Loading ${tieIn.type} data...`;
+        tieInContainer.appendChild(tieInRow);
+
+        runTieIn(tieIn).then((output) => {
+          tieInRow.textContent = output;
+        });
+      });
+
+      article.appendChild(tieInContainer);
+    }
+
     articleWrapper.appendChild(article);
     postsSection.appendChild(articleWrapper);
-
-    // console.log(
-    //   `📌 Rendered post ${post.id} by ${username} (owner ${ownerId})`
-    // );
   }
 
   requestAnimationFrame(() => {

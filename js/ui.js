@@ -392,3 +392,40 @@ export function applyCombinedCSS(layoutCSS = "", postCSS = "") {
     console.error("❌ Failed to apply user CSS:", err);
   }
 }
+
+export function renderTieInDropdown(tieInTypes) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "custom-dropdown";
+  wrapper.id = "tieInDropdown";
+
+  const selected = document.createElement("div");
+  selected.className = "selected-option button-style";
+  selected.textContent = "Add Tie-In";
+
+  const options = document.createElement("div");
+  options.className = "dropdown-options";
+
+  tieInTypes.forEach((type) => {
+    const opt = document.createElement("div");
+    opt.className = "dropdown-option";
+    opt.setAttribute("data-value", type);
+    opt.textContent = type.toUpperCase();
+    options.appendChild(opt);
+  });
+
+  wrapper.appendChild(selected);
+  wrapper.appendChild(options);
+
+  selected.addEventListener("click", () => {
+    options.style.display =
+      options.style.display === "block" ? "none" : "block";
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!wrapper.contains(e.target)) {
+      options.style.display = "none";
+    }
+  });
+
+  return wrapper;
+}

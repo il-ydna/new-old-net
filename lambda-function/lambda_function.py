@@ -245,7 +245,8 @@ def handle_post(event):
             "images": body.get("images", []),
             "layout": body.get("layout", "grid"),
             "pageOwnerId": body.get("pageOwnerId", user_sub),
-            "projectId": body.get("projectId")
+            "projectId": body.get("projectId"),
+            "apiTieIns": body.get("apiTieIns", [])
         }
 
         posts_table.put_item(Item=post_item)
@@ -307,7 +308,7 @@ def handle_put(event):
                 except:
                     pass
 
-        allowed_fields = ["title", "content", "tag", "images", "layout", "timestamp", "projectId"]
+        allowed_fields = ["title", "content", "tag", "images", "layout", "timestamp", "projectId", "apiTieIns"]
         updated_data = {k: body.get(k) for k in allowed_fields}
         updated_data.update({
             "id": post_id,

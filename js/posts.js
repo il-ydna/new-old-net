@@ -3,7 +3,11 @@ import {
   getUserIdFromToken,
   getUsernameFromToken,
 } from "./auth.js";
-import { showValidationMessage, removeValidationMessage } from "./ui.js";
+import {
+  showValidationMessage,
+  removeValidationMessage,
+  renderTieInDropdown,
+} from "./ui.js";
 import { uploadImageToS3 } from "./upload.js";
 import { renderPosts } from "./render.js";
 import {
@@ -17,6 +21,9 @@ import { applyCombinedCSS } from "./ui.js"; // or wherever it's defined
 import { getCurrentProjectId } from "./state.js";
 
 import { renderUserControls } from "./ui.js";
+
+import * as WeatherTieIn from "./tieins/weather.js";
+import * as EtaTieIn from "./tieins/eta.js";
 
 export async function updateHeader() {
   const idToken = await getIdToken();
@@ -173,6 +180,45 @@ export function initPostForm() {
   const previewContainer = document.getElementById("image-preview-container");
   const imageLabel = document.querySelector("#image-drop-zone label");
 
+  // Setup tie-in modules
+  const tieInModules = {
+    weather: WeatherTieIn,
+    eta: EtaTieIn,
+  };
+
+  function showTieInTypeSelector() {
+    const tieInTypes = Object.keys(tieInModules);
+    const tieInDropdown = renderTieInDropdown(tieInTypes);
+    document
+      .getElementById("tie-in-wrapper")
+      .insertBefore(tieInDropdown, addTieInBtn);
+
+    tieInDropdown.querySelectorAll(".dropdown-option").forEach((opt) => {
+      opt.addEventListener("click", () => {
+        const type = opt.dataset.value;
+        const row = tieInModules[type].renderInputRow();
+        row.dataset.type = type;
+        document.getElementById("tie-in-list").appendChild(row);
+        window.updateTieInHiddenInput();
+      });
+    });
+  }
+
+  window.updateTieInHiddenInput = function () {
+    const data = Array.from(document.querySelectorAll(".tie-in-row")).map(
+      (r) => {
+        const inputs = r.querySelectorAll("input");
+        const values = { type: r.dataset.type };
+        inputs.forEach((i) => {
+          const key = i.className.replace("tie-in-", "");
+          values[key] = i.value;
+        });
+        return values;
+      }
+    );
+    document.getElementById("apiTieInsInput").value = JSON.stringify(data);
+  };
+
   postForm.addEventListener("submit", async (e) => {
     const submitBtn = document.getElementById("submitPostBtn");
     submitBtn.disabled = true;
@@ -199,11 +245,7 @@ export function initPostForm() {
 
       const files = imageInput.files;
       const layout = formData.get("layout") || "grid";
-      const MAX_IMAGES = {
-        grid: 6,
-        stack: 6,
-        carousel: 6,
-      };
+      const MAX_IMAGES = { grid: 6, stack: 6, carousel: 6 };
 
       if (files.length > MAX_IMAGES[layout]) {
         showValidationMessage(
@@ -215,7 +257,6 @@ export function initPostForm() {
       }
 
       const imageUrls = [];
-
       for (let i = 0; i < files.length; i++) {
         const url = await uploadImageToS3(files[i], postId, i);
         imageUrls.push(url);
@@ -224,6 +265,14 @@ export function initPostForm() {
       const { id: currentUserId, username: currentUsername } =
         getCurrentUser() || {};
       const pageOwnerId = getPageOwner()?.id || currentUserId;
+
+      const tieInsRaw = formData.get("apiTieIns");
+      let tieIns = [];
+      try {
+        tieIns = JSON.parse(tieInsRaw || "[]");
+      } catch {
+        console.warn("Invalid tie-in JSON, skipping");
+      }
 
       const newPost = {
         id: postId,
@@ -238,6 +287,7 @@ export function initPostForm() {
         userId: currentUserId,
         projectId: getCurrentProjectId(),
         pageOwnerId,
+        apiTieIns: tieIns,
       };
 
       if (currentUserId !== pageOwnerId) {
