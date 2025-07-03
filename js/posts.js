@@ -207,7 +207,7 @@ export function initPostForm() {
   window.updateTieInHiddenInput = function () {
     const data = Array.from(document.querySelectorAll(".tie-in-row")).map(
       (r) => {
-        const inputs = r.querySelectorAll("input");
+        const inputs = r.querySelectorAll("input, select");
         const values = { type: r.dataset.type };
         inputs.forEach((i) => {
           const key = i.className.replace("tie-in-", "");
@@ -328,7 +328,6 @@ export function initPostForm() {
       imageInput.value = "";
       document.getElementById("tie-in-list").innerHTML = "";
       document.getElementById("apiTieInsInput").value = "[]";
-
 
       await loadPosts({ projectId: getCurrentProjectId() });
 

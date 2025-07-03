@@ -321,6 +321,24 @@ window.editPost = async function (id) {
       }
     }
 
+    // Rebuild tie-ins
+    const tieInList = document.getElementById("tie-in-list");
+    if (tieInList) {
+      tieInList.innerHTML = ""; // Clear existing
+
+      if (Array.isArray(post.apiTieIns)) {
+        post.apiTieIns.forEach((tieIn) => {
+          const mod = tieInModules[tieIn.type];
+          if (mod && typeof mod.renderInputRow === "function") {
+            const row = mod.renderInputRow(tieIn);
+            row.dataset.type = tieIn.type;
+            tieInList.appendChild(row);
+          }
+        });
+        window.updateTieInHiddenInput(); // Sync hidden input
+      }
+    }
+
     // Mark form as editing
     form.classList.add("editing");
     document.getElementById("cancelEditBtn").style.display = "inline-block";
