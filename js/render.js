@@ -185,11 +185,11 @@ export function renderPosts(posts, userCSSMap = {}) {
 
       post.apiTieIns.forEach((tieIn) => {
         const tieInRow = document.createElement("div");
-        tieInRow.textContent = `Loading ${tieIn.type} data...`;
+        tieInRow.innerHTML = `Loading ${tieIn.type} data...`;
         tieInContainer.appendChild(tieInRow);
 
         runTieIn(tieIn).then((output) => {
-          tieInRow.textContent = output;
+          tieInRow.innerHTML = output;
         });
       });
 

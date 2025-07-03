@@ -1,43 +1,92 @@
+import { createTieInRow } from "./common.js";
+import { geocodeLocation } from "./geocode.js";
+
 export function renderInputRow(data = {}) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "tie-in-row";
-  wrapper.style =
-    "display:flex; gap:0.5rem; margin-bottom:0.5rem; flex-wrap:wrap;";
+  return createTieInRow(
+    [
+      { key: "location", placeholder: "City/Location", value: data.location }
+    ],
+    "weather",
+    async ({ location }) => {
+      if (!location) return "⚠ Enter a location";
+      try {
+        const coords = await geocodeLocation(location);
+        if (!coords) return "⚠ Could not geocode location";
 
-  wrapper.innerHTML = `
-    <input type="text" placeholder="City/Location" class="tie-in-location" value="${
-      data.location || ""
-    }" />
-    <button type="button" class="fetch-tie-in button-style">Fetch Weather</button>
-    <button type="button" class="remove-tie-in button-style" style="padding:0 0.5rem;">×</button>
-    <div class="tie-in-result" style="margin-top:0.25rem; font-size:0.9rem; color:gray;"></div>
-  `;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) return "⚠ Failed to fetch weather";
 
-  const fetchBtn = wrapper.querySelector(".fetch-tie-in");
-  const removeBtn = wrapper.querySelector(".remove-tie-in");
-  const locationInput = wrapper.querySelector(".tie-in-location");
-  const resultEl = wrapper.querySelector(".tie-in-result");
+        const data = await res.json();
+        if (!data.daily || !data.daily.temperature_2m_max) {
+          return "⚠ No daily weather data";
+        }
 
-  fetchBtn.addEventListener("click", async () => {
-    resultEl.textContent = "Loading...";
-    const output = await getResult({ location: locationInput.value });
-    resultEl.textContent = output;
-  });
+        const max = data.daily.temperature_2m_max[0];
+        const min = data.daily.temperature_2m_min[0];
+        const precip = data.daily.precipitation_sum[0];
+        const dateStr = data.daily.time[0];
 
-  removeBtn.addEventListener("click", () => {
-    wrapper.remove();
-    updateTieInHiddenInput();
-  });
+        const formattedDate = new Date(dateStr).toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        });
 
-  locationInput.addEventListener("input", updateTieInHiddenInput);
+        // Get local time at fetch
+        const now = new Date();
+        const localTime = now.toLocaleTimeString(undefined, {
+          timeZone: data.timezone || 'UTC',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
 
-  updateTieInHiddenInput();
-
-  return wrapper;
+        return `🌤 ${location} (${formattedDate}, local time ${localTime}): High ${max}°C / Low ${min}°C${precip !== undefined ? `, ${precip}mm rain` : ''}`;
+      } catch (err) {
+        console.error("Weather fetch failed:", err);
+        return "⚠ Error loading weather";
+      }
+    }
+  );
 }
 
 export async function getResult({ location }) {
   if (!location) return "⚠ Please enter a location.";
-  await new Promise((r) => setTimeout(r, 1000)); // Simulate API delay
-  return `Mock Weather for ${location}: 75°F`;
+  try {
+    const coords = await geocodeLocation(location);
+    if (!coords) return "⚠ Could not geocode location";
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) return "⚠ Failed to fetch weather";
+
+    const data = await res.json();
+    if (!data.daily || !data.daily.temperature_2m_max || !data.current_weather) {
+      return "⚠ Incomplete weather data";
+    }
+
+    const max = data.daily.temperature_2m_max[0];
+    const min = data.daily.temperature_2m_min[0];
+    const precip = data.daily.precipitation_sum[0];
+    const current = data.current_weather.temperature;
+    const dateStr = data.daily.time[0];
+
+    const formattedDate = new Date(dateStr).toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const now = new Date();
+    const localTime = now.toLocaleTimeString(undefined, {
+      timeZone: data.timezone || 'UTC',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `Weather for ${location} (${formattedDate}, local time ${localTime}): <strong>${current}°C now</strong>, High ${max}°C / Low ${min}°C${precip !== undefined ? `, ${precip}mm rain` : ''}`;
+  } catch (err) {
+    console.error("Weather getResult error:", err);
+    return "⚠ Error loading weather";
+  }
 }

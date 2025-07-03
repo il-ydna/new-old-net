@@ -326,6 +326,9 @@ export function initPostForm() {
       layoutSelector.style.display = "none";
       imageLabel.textContent = "Choose/Drop Image";
       imageInput.value = "";
+      document.getElementById("tie-in-list").innerHTML = "";
+      document.getElementById("apiTieInsInput").value = "[]";
+
 
       await loadPosts({ projectId: getCurrentProjectId() });
 

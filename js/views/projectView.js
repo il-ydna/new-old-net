@@ -35,15 +35,16 @@ export function renderPostFormHTML() {
               <div id="share-dropdown-wrapper"></div>
             </div>
             <div style="display: flex; margin-top: 1rem;">
-              <div id="tie-in-wrapper">
-                <div id="tie-in-dropdown-wrapper"></div>
-                <div id="tie-in-list"></div>
-              </div>
+              
               <button type="button" id="cancelEditBtn" style="display: none">Cancel Edit</button>
               <button type="submit" id="submitPostBtn" style="margin-left: auto;">Post</button>
             </div>
             <div id="form-error" class="form-error" style="color: red; margin-top: 1rem; display: none; text-align: center"></div>
 
+            <div id="tie-in-wrapper">
+                <div id="tie-in-dropdown-wrapper"></div>
+                <div id="tie-in-list"></div>
+              </div>
             
             <input type="hidden" name="apiTieIns" id="apiTieInsInput" />
 
